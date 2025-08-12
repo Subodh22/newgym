@@ -189,6 +189,8 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
     if (!user) return
 
     setLoading(true)
+    const startTime = Date.now()
+    
     try {
       // Get the current session to pass access token
       const { data: { session } } = await supabase.auth.getSession()
@@ -207,13 +209,13 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
         if (!profileResponse.ok) {
           const errorData = await profileResponse.json()
           console.warn('Profile creation failed, but continuing:', errorData)
-          // Don't throw error, just log warning and continue
-          // The database trigger should handle profile creation automatically
         }
       } catch (profileError) {
         console.warn('Profile creation failed, but continuing:', profileError)
-        // Continue with mesocycle creation even if profile creation fails
       }
+      
+      console.log('🚀 Starting optimized mesocycle creation...')
+      console.log('⏱️ Creating mesocycle...')
       
       // Create mesocycle
       const { data: mesocycle, error: mesocycleError } = await createMesocycle({
@@ -227,75 +229,76 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
         throw new Error(`Failed to create mesocycle: ${mesocycleError?.message}`)
       }
 
-      // Create weeks
-      for (let weekNum = 1; weekNum <= weeks; weekNum++) {
-        const isDeload = weekNum === weeks && weeks > 4
-        const weekName = isDeload ? `Week ${weekNum} - Deload` : `Week ${weekNum}`
+      console.log('✅ Mesocycle created in', Date.now() - startTime, 'ms')
+      console.log('⏱️ Creating Week 1 only...')
+
+      // Create ONLY Week 1 initially (much faster)
+      const { data: week, error: weekError } = await createWeek({
+        mesocycle_id: mesocycle.id,
+        week_number: 1,
+        name: 'Week 1'
+      })
+
+      if (weekError || !week) {
+        throw new Error(`Failed to create week: ${weekError?.message}`)
+      }
+
+      // Create workouts for Week 1 only
+      const workoutTypes = Object.keys(TRAINING_SPLITS[selectedSplit as keyof typeof TRAINING_SPLITS])
+      const workoutsPerWeek = Math.ceil(trainingDays / workoutTypes.length)
+
+      for (let day = 1; day <= trainingDays; day++) {
+        const workoutTypeIndex = (day - 1) % workoutTypes.length
+        const workoutType = workoutTypes[workoutTypeIndex]
         
-        const { data: week, error: weekError } = await createWeek({
-          mesocycle_id: mesocycle.id,
-          week_number: weekNum,
-          name: weekName
+        const { data: workout, error: workoutError } = await createWorkout({
+          week_id: week.id,
+          day_name: `Day ${day} - ${workoutType}`
         })
 
-        if (weekError || !week) {
-          throw new Error(`Failed to create week: ${weekError?.message}`)
+        if (workoutError || !workout) {
+          throw new Error(`Failed to create workout: ${workoutError?.message}`)
         }
 
-        // Create workouts for this week
-        const workoutTypes = Object.keys(TRAINING_SPLITS[selectedSplit as keyof typeof TRAINING_SPLITS])
-        const workoutsPerWeek = Math.ceil(trainingDays / workoutTypes.length)
+        // Create exercises for this workout
+        const exercisesForWorkout = workoutPlans[workoutType] || {}
+        let exerciseOrder = 1
 
-        for (let day = 1; day <= trainingDays; day++) {
-          const workoutTypeIndex = (day - 1) % workoutTypes.length
-          const workoutType = workoutTypes[workoutTypeIndex]
-          
-          const { data: workout, error: workoutError } = await createWorkout({
-            week_id: week.id,
-            day_name: `Day ${day} - ${workoutType}`
+        for (const [exerciseName, exerciseData] of Object.entries(exercisesForWorkout)) {
+          const { data: exercise, error: exerciseError } = await createExercise({
+            workout_id: workout.id,
+            name: exerciseName,
+            exercise_order: exerciseOrder++
           })
 
-          if (workoutError || !workout) {
-            throw new Error(`Failed to create workout: ${workoutError?.message}`)
+          if (exerciseError || !exercise) {
+            throw new Error(`Failed to create exercise: ${exerciseError?.message}`)
           }
 
-          // Create exercises for this workout
-          const exercisesForWorkout = workoutPlans[workoutType] || {}
-          let exerciseOrder = 1
+          // Calculate sets for Week 1 only
+          const totalExercisesForMuscle = calculateTotalExercisesForMuscleGroup(workoutPlans, (exerciseData as any).muscleGroup)
+          const setsCount = calculateSetsForWeek((exerciseData as any).muscleGroup, 1, totalExercisesForMuscle)
 
-          for (const [exerciseName, exerciseData] of Object.entries(exercisesForWorkout)) {
-            const { data: exercise, error: exerciseError } = await createExercise({
-              workout_id: workout.id,
-              name: exerciseName,
-              exercise_order: exerciseOrder++
+          // Create sets for Week 1 only
+          for (let setNum = 1; setNum <= setsCount; setNum++) {
+            const { error: setError } = await createSet({
+              exercise_id: exercise.id,
+              set_number: setNum,
+              weight: (exerciseData as any).weight || 0,
+              reps: parseInt((exerciseData as any).reps.split('-')[0]) || 8,
+              is_completed: false
             })
 
-            if (exerciseError || !exercise) {
-              throw new Error(`Failed to create exercise: ${exerciseError?.message}`)
-            }
-
-            // Calculate sets based on total exercises for this muscle group
-            const totalExercisesForMuscle = calculateTotalExercisesForMuscleGroup(workoutPlans, (exerciseData as any).muscleGroup)
-            const setsCount = isDeload ? 
-              Math.max(1, Math.round(calculateSetsForWeek((exerciseData as any).muscleGroup, weekNum, totalExercisesForMuscle) * 0.6)) : // 60% volume for deload
-              calculateSetsForWeek((exerciseData as any).muscleGroup, weekNum, totalExercisesForMuscle)
-
-            for (let setNum = 1; setNum <= setsCount; setNum++) {
-              const { error: setError } = await createSet({
-                exercise_id: exercise.id,
-                set_number: setNum,
-                weight: (exerciseData as any).weight || 0,
-                reps: parseInt((exerciseData as any).reps.split('-')[0]) || 8,
-                is_completed: false
-              })
-
-              if (setError) {
-                throw new Error(`Failed to create set: ${setError.message}`)
-              }
+            if (setError) {
+              throw new Error(`Failed to create set: ${setError.message}`)
             }
           }
         }
       }
+
+      const totalTime = Date.now() - startTime
+      console.log('✅ Week 1 created successfully in', totalTime, 'ms')
+      console.log('📊 Performance: ~', Math.round(totalTime / 1000), 'seconds for Week 1')
 
       onSuccess()
     } catch (error) {

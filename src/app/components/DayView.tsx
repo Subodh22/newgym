@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { ExerciseCard } from './ExerciseCard'
+import { WeekFeedback } from './WeekFeedback'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
@@ -19,6 +20,8 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
   const { user } = useSupabaseAuth()
   const [workout, setWorkout] = useState(initialWorkout)
   const [loading, setLoading] = useState(false)
+  const [showFeedback, setShowFeedback] = useState(false)
+  const [feedbackLoading, setFeedbackLoading] = useState(false)
 
   const refreshWorkout = async () => {
     if (!user) return
@@ -32,7 +35,7 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
         for (const week of mesocycle.weeks || []) {
           for (const w of week.workouts || []) {
             if (w.id === workout.id) {
-              setWorkout(w)
+              setWorkout({ ...w, week, mesocycle })
               return
             }
           }
@@ -41,6 +44,21 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
     } catch (error) {
       console.error('Error refreshing workout:', error)
     }
+  }
+
+  const getMesocycleId = () => {
+    // Try multiple ways to get the mesocycle ID
+    if (workout.week?.mesocycle_id) return workout.week.mesocycle_id
+    if (workout.mesocycle?.id) return workout.mesocycle.id
+    
+    // If we can't find it, we need to fetch it
+    console.warn('Mesocycle ID not found in workout data, attempting to fetch...')
+    return null
+  }
+
+  const getWeekNumber = () => {
+    if (workout.week?.week_number) return workout.week.week_number
+    return 1 // Default to week 1
   }
 
   const handleCompleteWorkout = async () => {
@@ -58,12 +76,95 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
       if (error) throw error
       
       setWorkout({ ...workout, is_completed: allSetsCompleted })
+      
+      // Check if this is the last workout of the week
+      if (allSetsCompleted) {
+        // For now, show feedback after completing any workout
+        // In a full implementation, you'd check if all workouts in the week are complete
+        setShowFeedback(true)
+      }
+      
       onUpdate()
     } catch (error) {
       console.error('Error completing workout:', error)
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleFeedbackSubmit = async (feedback: any) => {
+    setFeedbackLoading(true)
+    try {
+      // Extract unique muscle groups from the workout
+      const muscleGroups = Array.from(new Set(
+        workout.exercises?.map((exercise: any) => {
+          // Map exercise names to muscle groups (simplified)
+          const exerciseName = exercise.name.toLowerCase()
+          if (exerciseName.includes('bench') || exerciseName.includes('press') || exerciseName.includes('chest')) return 'Chest'
+          if (exerciseName.includes('deadlift') || exerciseName.includes('row') || exerciseName.includes('pull')) return 'Back'
+          if (exerciseName.includes('squat') || exerciseName.includes('leg')) return 'Quadriceps'
+          if (exerciseName.includes('curl')) return 'Biceps'
+          if (exerciseName.includes('tricep') || exerciseName.includes('dip')) return 'Triceps'
+          if (exerciseName.includes('shoulder') || exerciseName.includes('press')) return 'Shoulders'
+          return 'Other'
+        }) || []
+      ))
+
+      // Get mesocycle ID and week number
+      const mesocycleId = getMesocycleId()
+      const currentWeekNumber = getWeekNumber()
+      
+      if (!mesocycleId) {
+        throw new Error('Could not determine mesocycle ID. Please try refreshing the page.')
+      }
+
+      console.log('🔍 Debug info:', {
+        mesocycleId,
+        currentWeekNumber,
+        workoutId: workout.id,
+        workoutData: workout
+      })
+
+      // Call the progressive week creation API
+      const requestBody = {
+        mesocycleId: mesocycleId,
+        weekNumber: currentWeekNumber + 1,
+        userFeedback: feedback,
+        trainingDays: 6,
+        selectedSplit: { 'Push': [], 'Pull': [], 'Legs': [] },
+        workoutPlans: {}
+      }
+      
+      console.log('📤 Sending request to progressive week API:', requestBody)
+      
+      // Use mock API while database issues are resolved
+      const response = await fetch('/api/mesocycles/progressive-week-mock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('❌ Progressive week API error:', errorData)
+        throw new Error(`Failed to create next week: ${errorData.error || response.statusText}`)
+      }
+
+      const result = await response.json()
+      console.log('✅ Next week created with autoregulation:', result)
+      
+      setShowFeedback(false)
+      onUpdate() // Refresh the data
+    } catch (error) {
+      console.error('Error creating next week:', error)
+      alert(`Failed to create next week: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setFeedbackLoading(false)
+    }
+  }
+
+  const handleFeedbackSkip = () => {
+    setShowFeedback(false)
   }
 
   const formatDate = (date: string | Date) => {
@@ -166,7 +267,7 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
               <Plus className="h-12 w-12 mx-auto mb-4 text-gray-400 opacity-50" />
               <h3 className="font-medium mb-2">No exercises yet</h3>
               <p className="text-sm text-gray-500 mb-4">
-                This workout doesn't have any exercises planned
+                This workout doesn&apos;t have any exercises planned
               </p>
             </CardContent>
           </Card>
@@ -183,6 +284,32 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
             <p className="text-sm text-gray-700">{workout.notes}</p>
           </CardContent>
         </Card>
+      )}
+
+      {/* Week Feedback Modal */}
+      {showFeedback && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="w-full max-w-4xl">
+            <WeekFeedback
+              weekNumber={workout.week?.week_number || 1}
+              muscleGroups={Array.from(new Set(
+                workout.exercises?.map((exercise: any) => {
+                  const exerciseName = exercise.name.toLowerCase()
+                  if (exerciseName.includes('bench') || exerciseName.includes('press') || exerciseName.includes('chest')) return 'Chest'
+                  if (exerciseName.includes('deadlift') || exerciseName.includes('row') || exerciseName.includes('pull')) return 'Back'
+                  if (exerciseName.includes('squat') || exerciseName.includes('leg')) return 'Quadriceps'
+                  if (exerciseName.includes('curl')) return 'Biceps'
+                  if (exerciseName.includes('tricep') || exerciseName.includes('dip')) return 'Triceps'
+                  if (exerciseName.includes('shoulder') || exerciseName.includes('press')) return 'Shoulders'
+                  return 'Other'
+                }) || []
+              ))}
+              onSubmit={handleFeedbackSubmit}
+              onSkip={handleFeedbackSkip}
+              loading={feedbackLoading}
+            />
+          </div>
+        </div>
       )}
     </div>
   )

@@ -41,6 +41,28 @@ export const getMesocycles = async (userId: string) => {
   return { data, error }
 }
 
+export const getMesocycle = async (mesocycleId: number) => {
+  const { data, error } = await supabase
+    .from('mesocycles')
+    .select(`
+      *,
+      weeks (
+        *,
+        workouts (
+          *,
+          exercises (
+            *,
+            sets (*)
+          )
+        )
+      )
+    `)
+    .eq('id', mesocycleId)
+    .single()
+  
+  return { data, error }
+}
+
 export const updateMesocycle = async (id: number, updates: Tables['mesocycles']['Update']) => {
   const { data, error } = await supabase
     .from('mesocycles')

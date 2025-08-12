@@ -7,6 +7,7 @@ import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Check, Plus, X } from 'lucide-react'
 import { updateSet, createSet, deleteSet } from '@/lib/supabase/database'
+import { ExerciseFeedback } from './ExerciseFeedback'
 
 interface Set {
   id: number
@@ -33,6 +34,8 @@ interface ExerciseCardProps {
 export function ExerciseCard({ exercise, onUpdateExercise }: ExerciseCardProps) {
   const [loading, setLoading] = useState(false)
   const [localSetValues, setLocalSetValues] = useState<{[key: number]: {weight?: number, reps?: number}}>({})
+  const [showFeedback, setShowFeedback] = useState(false)
+  const [feedbackLoading, setFeedbackLoading] = useState(false)
 
   const handleSetUpdate = async (setId: number, field: keyof Set, value: number | boolean) => {
     setLoading(true)
@@ -42,6 +45,17 @@ export function ExerciseCard({ exercise, onUpdateExercise }: ExerciseCardProps) 
       if (error) throw error
       
       onUpdateExercise()
+      
+      // Check if all sets are now completed
+      if (field === 'is_completed' && value === true) {
+        const updatedSets = exercise.sets.map(set => 
+          set.id === setId ? { ...set, is_completed: true } : set
+        )
+        const allCompleted = updatedSets.every(set => set.is_completed)
+        if (allCompleted) {
+          setShowFeedback(true)
+        }
+      }
     } catch (error) {
       console.error('Error updating set:', error)
     } finally {
@@ -116,6 +130,34 @@ export function ExerciseCard({ exercise, onUpdateExercise }: ExerciseCardProps) 
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleFeedbackSubmit = async (feedback: any) => {
+    setFeedbackLoading(true)
+    try {
+      // Store feedback for later use in progressive week creation
+      console.log('Exercise feedback saved:', feedback)
+      setShowFeedback(false)
+    } catch (error) {
+      console.error('Error saving feedback:', error)
+    } finally {
+      setFeedbackLoading(false)
+    }
+  }
+
+  const handleFeedbackSkip = () => {
+    setShowFeedback(false)
+  }
+
+  const getMuscleGroup = (exerciseName: string) => {
+    const name = exerciseName.toLowerCase()
+    if (name.includes('bench') || name.includes('chest') || name.includes('press')) return 'Chest'
+    if (name.includes('row') || name.includes('pull') || name.includes('lat')) return 'Back'
+    if (name.includes('squat') || name.includes('leg')) return 'Quadriceps'
+    if (name.includes('curl')) return 'Biceps'
+    if (name.includes('tricep') || name.includes('dip')) return 'Triceps'
+    if (name.includes('shoulder') || name.includes('press')) return 'Shoulders'
+    return 'Other'
   }
 
   const getSetStatusColor = (set: Set) => {
@@ -228,6 +270,19 @@ export function ExerciseCard({ exercise, onUpdateExercise }: ExerciseCardProps) 
           Add Set
         </Button>
       </CardContent>
+      
+      {/* Exercise Feedback Modal */}
+      {showFeedback && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <ExerciseFeedback
+            exerciseName={exercise.name}
+            muscleGroup={getMuscleGroup(exercise.name)}
+            onSubmit={handleFeedbackSubmit}
+            onSkip={handleFeedbackSkip}
+            loading={feedbackLoading}
+          />
+        </div>
+      )}
     </Card>
   )
 }
