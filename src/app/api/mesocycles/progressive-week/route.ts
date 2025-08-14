@@ -216,8 +216,59 @@ export async function POST(request: NextRequest) {
       return Math.max(landmarks.MEV, Math.min(landmarks.MRV, baseSets))
     }
 
-    const calculateProgressiveWeight = (baseWeight: number, weekNumber: number, feedback: UserFeedback[], muscleGroup: string) => {
-      if (baseWeight === 0) return 0
+    // Exercise-specific baseline weights (in kg) for when no previous data exists
+    const BASELINE_WEIGHTS = {
+      // Chest exercises
+      'Dumbbell Bench Press': 25,
+      'Barbell Bench Press': 60,
+      'Incline Dumbbell Press': 22.5,
+      'Push-ups': 0, // Bodyweight
+      'Chest Flyes': 15,
+      'Cable Flyes': 20,
+      
+      // Shoulder exercises
+      'Shoulder Press': 20,
+      'Lateral Raises': 10,
+      'Front Raises': 12.5,
+      'Rear Delt Flyes': 10,
+      
+      // Triceps exercises
+      'Tricep Dips': 0, // Bodyweight
+      'Overhead Tricep Extension': 25,
+      'Tricep Pushdowns': 30,
+      
+      // Back exercises
+      'Pull-ups': 0, // Bodyweight
+      'Lat Pulldowns': 40,
+      'Seated Rows': 35,
+      'Barbell Rows': 45,
+      'T-Bar Rows': 40,
+      
+      // Biceps exercises
+      'Bicep Curls': 15,
+      'Hammer Curls': 17.5,
+      'Preacher Curls': 12.5,
+      
+      // Leg exercises
+      'Squats': 60,
+      'Deadlifts': 80,
+      'Leg Press': 100,
+      'Leg Curls': 30,
+      'Leg Extensions': 35,
+      'Calf Raises': 40,
+      
+      // Default fallback
+      'default': 20
+    }
+
+    const calculateProgressiveWeight = (baseWeight: number, weekNumber: number, feedback: UserFeedback[], muscleGroup: string, exerciseName: string = '') => {
+      let workingWeight = baseWeight
+
+      // If baseWeight is 0 or very low, use baseline weight for the exercise
+      if (baseWeight === 0 || baseWeight < 5) {
+        workingWeight = BASELINE_WEIGHTS[exerciseName] || BASELINE_WEIGHTS['default']
+        console.log(`🏋️ Using baseline weight for "${exerciseName}": ${workingWeight}kg (previous was ${baseWeight}kg)`)
+      }
 
       const muscleFeedback = feedback.find(f => f.muscleGroup === muscleGroup)
       let progressionRate = WEIGHT_PROGRESSION.moderate
@@ -246,8 +297,8 @@ export async function POST(request: NextRequest) {
       }
 
       // Apply weekly progression
-      const newWeight = baseWeight * (1 + progressionRate)
-      return Math.round(newWeight * 4) / 4 // Round to nearest 0.25
+      const newWeight = workingWeight * (1 + progressionRate)
+      return Math.round(newWeight * 4) / 4 // Round to nearest 0.25kg
     }
 
     const getTargetRepsForWeek = (weekNumber: number, baseReps: number = 8) => {
@@ -400,8 +451,8 @@ export async function POST(request: NextRequest) {
             ?.filter(set => set.is_completed && set.weight > 0)
             ?.sort((a, b) => b.set_number - a.set_number)[0]
           
-          const baseWeight = lastCompletedSet?.weight || 100
-          const progressiveWeight = calculateProgressiveWeight(baseWeight, weekNumber, userFeedback || [], muscleGroup)
+          const baseWeight = lastCompletedSet?.weight || 0  // Changed from 100 to 0 to trigger baseline logic
+          const progressiveWeight = calculateProgressiveWeight(baseWeight, weekNumber, userFeedback || [], muscleGroup, prevExercise.name)
           
           // Get target reps based on RIR progression  
           const targetReps = getTargetRepsForWeek(weekNumber, lastCompletedSet?.reps || 8)
