@@ -19,6 +19,8 @@ interface MuscleGroupFeedback {
   difficulty: 'easy' | 'moderate' | 'hard' | 'too_hard'
   soreness: 'none' | 'light' | 'moderate' | 'severe'
   performance: 'improved' | 'maintained' | 'decreased'
+  pumpQuality?: 1 | 2 | 3 | 4 | 5
+  recovery?: 'poor' | 'fair' | 'good' | 'excellent'
 }
 
 export function WeekFeedback({ weekNumber, muscleGroups, onSubmit, onSkip, loading }: WeekFeedbackProps) {
@@ -27,7 +29,9 @@ export function WeekFeedback({ weekNumber, muscleGroups, onSubmit, onSkip, loadi
       muscleGroup: group,
       difficulty: 'moderate',
       soreness: 'light',
-      performance: 'maintained'
+      performance: 'maintained',
+      pumpQuality: 3,
+      recovery: 'good'
     }))
   )
 
@@ -147,8 +151,45 @@ export function WeekFeedback({ weekNumber, muscleGroups, onSubmit, onSkip, loadi
               </div>
             </div>
 
+            {/* Pump Quality */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Pump Quality (RP-style feedback)</label>
+              <div className="grid grid-cols-5 gap-2">
+                {([1, 2, 3, 4, 5] as const).map((quality) => (
+                  <Button
+                    key={quality}
+                    variant={muscleFeedback.pumpQuality === quality ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleFeedbackChange(muscleFeedback.muscleGroup, 'pumpQuality', quality)}
+                    className="text-xs"
+                  >
+                    {quality}⭐
+                  </Button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">1 = Poor pump, 5 = Amazing pump</p>
+            </div>
+
+            {/* Recovery */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Recovery Status</label>
+              <div className="grid grid-cols-4 gap-2">
+                {(['poor', 'fair', 'good', 'excellent'] as const).map((recovery) => (
+                  <Button
+                    key={recovery}
+                    variant={muscleFeedback.recovery === recovery ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleFeedbackChange(muscleFeedback.muscleGroup, 'recovery', recovery)}
+                    className="text-xs"
+                  >
+                    {recovery}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
             {/* Summary */}
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Badge className={getDifficultyColor(muscleFeedback.difficulty)}>
                 {muscleFeedback.difficulty.replace('_', ' ')}
               </Badge>
@@ -158,6 +199,12 @@ export function WeekFeedback({ weekNumber, muscleGroups, onSubmit, onSkip, loadi
               <Badge variant="outline" className="flex items-center gap-1">
                 {getPerformanceIcon(muscleFeedback.performance)}
                 {muscleFeedback.performance}
+              </Badge>
+              <Badge variant="secondary">
+                Pump: {muscleFeedback.pumpQuality}⭐
+              </Badge>
+              <Badge variant="secondary">
+                Recovery: {muscleFeedback.recovery}
               </Badge>
             </div>
           </div>
@@ -182,10 +229,12 @@ export function WeekFeedback({ weekNumber, muscleGroups, onSubmit, onSkip, loadi
         </div>
 
         <div className="text-xs text-gray-500 text-center">
-          <p>💡 <strong>Autoregulation Tip:</strong> Based on your feedback, we'll adjust:</p>
-          <p>• Volume (sets) for each muscle group</p>
-          <p>• Intensity progression for the next week</p>
-          <p>• Recovery considerations for optimal results</p>
+          <p>🧬 <strong>RP Autoregulation:</strong> Based on your feedback, we'll apply:</p>
+          <p>• <strong>Volume adjustments</strong> using MEV/MAV/MRV landmarks</p>
+          <p>• <strong>RIR progression</strong> (3→2→1→0 RIR across weeks)</p>
+          <p>• <strong>Weight increases</strong> of 2.5% (adjusted by difficulty)</p>
+          <p>• <strong>Pump & recovery feedback</strong> for optimal periodization</p>
+          <p className="mt-2 font-medium">Following Dr. Mike Israetel's RP methodology</p>
         </div>
       </CardContent>
     </Card>

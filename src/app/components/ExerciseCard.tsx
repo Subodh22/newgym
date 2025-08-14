@@ -24,6 +24,10 @@ interface Exercise {
   sets: Set[]
   notes?: string | null
   exercise_order: number
+  target_rir?: number
+  rir_description?: string
+  progressive_weight?: number
+  muscle_group?: string
 }
 
 interface ExerciseCardProps {
@@ -173,11 +177,29 @@ export function ExerciseCard({ exercise, onUpdateExercise }: ExerciseCardProps) 
         <div className="flex items-start justify-between">
           <div className="space-y-2">
             <CardTitle className="text-lg">{exercise.name}</CardTitle>
-            <Badge variant="secondary" className="text-xs">
-              Exercise {exercise.exercise_order}
-            </Badge>
+            <div className="flex gap-2">
+              <Badge variant="secondary" className="text-xs">
+                Exercise {exercise.exercise_order}
+              </Badge>
+              {exercise.target_rir !== undefined && (
+                <Badge variant="outline" className="text-xs">
+                  {exercise.target_rir} RIR
+                </Badge>
+              )}
+              {exercise.muscle_group && (
+                <Badge variant="outline" className="text-xs">
+                  {exercise.muscle_group}
+                </Badge>
+              )}
+            </div>
           </div>
         </div>
+        {exercise.rir_description && (
+          <p className="text-sm text-blue-600 font-medium">{exercise.rir_description}</p>
+        )}
+        {exercise.progressive_weight && (
+          <p className="text-sm text-green-600">Progressive weight: {exercise.progressive_weight} lbs</p>
+        )}
         {exercise.notes && (
           <p className="text-sm text-gray-500">{exercise.notes}</p>
         )}

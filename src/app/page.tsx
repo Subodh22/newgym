@@ -30,11 +30,18 @@ export default function Home() {
   }
 
   const handleSelectWorkout = (workoutData: any) => {
-    setViewState({ type: 'workout', workout: workoutData.workout })
+    // Handle both formats: direct workout object or wrapped workout data
+    const workout = workoutData.workout || workoutData
+    setViewState({ type: 'workout', workout: workout })
   }
 
   const handleBackFromWorkout = () => {
     setViewState({ type: 'tab', tab: 'current' })
+  }
+
+  const handleWorkoutUpdate = () => {
+    // Force re-render by updating the view state
+    setViewState(prev => ({ ...prev }))
   }
 
   const renderActiveView = () => {
@@ -43,20 +50,20 @@ export default function Home() {
         <DayView
           workout={viewState.workout}
           onBack={handleBackFromWorkout}
-          onUpdate={() => {}}
+          onUpdate={handleWorkoutUpdate}
         />
       )
     }
 
     switch (viewState.tab) {
       case 'current':
-        return <CurrentWorkout onSelectWorkout={handleSelectWorkout} />
+        return <Dashboard key={`current-${Date.now()}`} onSelectWorkout={handleSelectWorkout} />
       case 'mesocycles':
-        return <Dashboard />
+        return <Dashboard key={`mesocycles-${Date.now()}`} onSelectWorkout={handleSelectWorkout} />
       case 'profile':
         return <UserProfile />
       default:
-        return <CurrentWorkout onSelectWorkout={handleSelectWorkout} />
+        return <Dashboard key={`default-${Date.now()}`} onSelectWorkout={handleSelectWorkout} />
     }
   }
 

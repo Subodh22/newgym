@@ -14,11 +14,32 @@ const VOLUME_LANDMARKS = {
   'Calves': { MEV: 8, MAV: 16, MRV: 25 }
 }
 
+// RIR (Reps in Reserve) progression system following RP methodology
+const RIR_PROGRESSION = {
+  1: { rir: 3, description: 'Week 1: 3 RIR - Building base volume' },
+  2: { rir: 2, description: 'Week 2: 2 RIR - Moderate intensity' },
+  3: { rir: 1, description: 'Week 3: 1 RIR - High intensity' },
+  4: { rir: 0, description: 'Week 4: 0 RIR - Peak intensity' },
+  5: { rir: 0, description: 'Week 5: 0 RIR - Overreaching (optional)' },
+  deload: { rir: 3, description: 'Deload: 3-4 RIR - Active recovery' }
+}
+
+// Weight progression percentages based on week and feedback
+const WEIGHT_PROGRESSION = {
+  base: 0.025, // 2.5% base increase per week
+  easy: 0.035, // 3.5% increase if too easy
+  moderate: 0.025, // 2.5% standard increase
+  hard: 0.015, // 1.5% smaller increase if hard
+  too_hard: 0.0 // No increase if too hard
+}
+
 interface UserFeedback {
   muscleGroup: string
   difficulty: 'easy' | 'moderate' | 'hard' | 'too_hard'
   soreness: 'none' | 'light' | 'moderate' | 'severe'
   performance: 'improved' | 'maintained' | 'decreased'
+  pumpQuality?: 1 | 2 | 3 | 4 | 5
+  recovery?: 'poor' | 'fair' | 'good' | 'excellent'
 }
 
 // Helper function to get basic exercises for each workout type
@@ -82,9 +103,26 @@ export async function POST(request: NextRequest) {
     console.log(`📊 Parameters: trainingDays=${defaultTrainingDays}, split=${Object.keys(defaultSelectedSplit).join(',')}`)
     const startTime = Date.now()
 
-    // Create the week directly without fetching the mesocycle
+    // Check if this week already exists
+    const { data: existingWeek, error: checkError } = await supabaseAdmin
+      .from('weeks')
+      .select('*')
+      .eq('mesocycle_id', mesocycleId)
+      .eq('week_number', weekNumber)
+      .single()
+
+    if (existingWeek) {
+      console.log(`⚠️ Week ${weekNumber} already exists for mesocycle ${mesocycleId}`)
+      return NextResponse.json({
+        success: false,
+        error: `Week ${weekNumber} already exists`,
+        existingWeek: existingWeek
+      }, { status: 409 }) // Conflict status
+    }
+
+    // Create the week
     const weekName = `Week ${weekNumber}`
-    console.log(`🔄 Attempting to create week: ${weekName} for mesocycle ${mesocycleId}`)
+    console.log(`🔄 Creating new week: ${weekName} for mesocycle ${mesocycleId}`)
     
     const { data: week, error: weekError } = await supabaseAdmin
       .from('weeks')
@@ -103,137 +141,334 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Week created successfully:', week.id)
 
-    // Calculate adjusted volume based on user feedback
+    // Enhanced RP-style autoregulation with comprehensive feedback
     const calculateAdjustedSets = (muscleGroup: string, baseWeek: number, feedback: UserFeedback[]) => {
       const landmarks = VOLUME_LANDMARKS[muscleGroup as keyof typeof VOLUME_LANDMARKS]
       if (!landmarks) return 3
 
-      // Base progression from MEV to MRV
+      // Progressive volume increase from MEV towards MRV over 4-5 weeks
       const weeklyProgression = (landmarks.MRV - landmarks.MEV) / 4
       let baseSets = Math.max(landmarks.MEV, Math.round(landmarks.MEV + (weeklyProgression * (baseWeek - 1))))
 
-      // Apply autoregulation based on feedback
       const muscleFeedback = feedback.find(f => f.muscleGroup === muscleGroup)
+      if (muscleFeedback) {
+        // RP-style autoregulation based on comprehensive feedback
+        let volumeAdjustment = 0
+
+        // Primary adjustment based on difficulty
+        switch (muscleFeedback.difficulty) {
+          case 'easy':
+            volumeAdjustment += 2 // Add 2 sets if too easy
+            break
+          case 'hard':
+            volumeAdjustment -= 1 // Remove 1 set if hard
+            break
+          case 'too_hard':
+            volumeAdjustment -= 3 // Significant reduction if too hard
+            break
+        }
+
+        // Secondary adjustments based on soreness
+        switch (muscleFeedback.soreness) {
+          case 'severe':
+            volumeAdjustment -= 1 // Reduce volume for severe soreness
+            break
+          case 'none':
+            volumeAdjustment += 1 // Can handle more volume if no soreness
+            break
+        }
+
+        // Performance-based adjustments
+        switch (muscleFeedback.performance) {
+          case 'improved':
+            volumeAdjustment += 1 // Reward improvement with more volume
+            break
+          case 'decreased':
+            volumeAdjustment -= 2 // Reduce volume if performance declined
+            break
+        }
+
+        // Pump quality adjustments (if available)
+        if (muscleFeedback.pumpQuality) {
+          if (muscleFeedback.pumpQuality <= 2) {
+            volumeAdjustment += 1 // Poor pump = need more volume
+          } else if (muscleFeedback.pumpQuality >= 4) {
+            volumeAdjustment -= 1 // Great pump = volume is sufficient
+          }
+        }
+
+        // Recovery-based adjustments (if available)
+        if (muscleFeedback.recovery) {
+          switch (muscleFeedback.recovery) {
+            case 'poor':
+              volumeAdjustment -= 2
+              break
+            case 'excellent':
+              volumeAdjustment += 1
+              break
+          }
+        }
+
+        baseSets += volumeAdjustment
+      }
+
+      // Ensure we stay within physiological limits
+      return Math.max(landmarks.MEV, Math.min(landmarks.MRV, baseSets))
+    }
+
+    const calculateProgressiveWeight = (baseWeight: number, weekNumber: number, feedback: UserFeedback[], muscleGroup: string) => {
+      if (baseWeight === 0) return 0
+
+      const muscleFeedback = feedback.find(f => f.muscleGroup === muscleGroup)
+      let progressionRate = WEIGHT_PROGRESSION.moderate
+
       if (muscleFeedback) {
         switch (muscleFeedback.difficulty) {
           case 'easy':
-            baseSets = Math.min(landmarks.MRV, baseSets + 2) // Increase volume
-            break
-          case 'moderate':
-            // Keep current volume
+            progressionRate = WEIGHT_PROGRESSION.easy
             break
           case 'hard':
-            baseSets = Math.max(landmarks.MEV, baseSets - 1) // Slight decrease
+            progressionRate = WEIGHT_PROGRESSION.hard
             break
           case 'too_hard':
-            baseSets = Math.max(landmarks.MEV, baseSets - 2) // Significant decrease
+            progressionRate = WEIGHT_PROGRESSION.too_hard
             break
+          default:
+            progressionRate = WEIGHT_PROGRESSION.moderate
         }
 
-        // Adjust for soreness
-        if (muscleFeedback.soreness === 'severe') {
-          baseSets = Math.max(landmarks.MEV, baseSets - 1)
+        // Additional adjustments based on performance
+        if (muscleFeedback.performance === 'improved') {
+          progressionRate *= 1.2 // 20% bonus for improved performance
+        } else if (muscleFeedback.performance === 'decreased') {
+          progressionRate *= 0.5 // 50% reduction for decreased performance
         }
       }
 
-      // Deload week adjustment
-      // This logic needs to be re-evaluated as the mesocycle is no longer fetched.
-      // For now, we'll keep it simple and assume no deload if mesocycle is not available.
-      // If a deload week is intended, this logic needs to be re-implemented based on mesocycle data.
-      // For now, we'll remove the deload adjustment as it relies on mesocycle.number_of_weeks
-      // and the mesocycle object is no longer fetched.
-      // if (isDeload) {
-      //   baseSets = Math.max(1, Math.round(baseSets * 0.6))
-      // }
-
-      return baseSets
+      // Apply weekly progression
+      const newWeight = baseWeight * (1 + progressionRate)
+      return Math.round(newWeight * 4) / 4 // Round to nearest 0.25
     }
 
-    // Create workouts for this week
-    const workoutTypes = Object.keys(defaultSelectedSplit)
-    const workoutsPerWeek = Math.ceil(defaultTrainingDays / workoutTypes.length)
-
-    for (let day = 1; day <= defaultTrainingDays; day++) {
-      const workoutTypeIndex = (day - 1) % workoutTypes.length
-      const workoutType = workoutTypes[workoutTypeIndex]
+    const getTargetRepsForWeek = (weekNumber: number, baseReps: number = 8) => {
+      const rirInfo = RIR_PROGRESSION[weekNumber as keyof typeof RIR_PROGRESSION] || RIR_PROGRESSION[4]
       
-      const { data: workout, error: workoutError } = await supabaseAdmin
-        .from('workouts')
-        .insert({
-          week_id: week.id,
-          day_name: `Day ${day} - ${workoutType}`
-        })
-        .select()
-        .single()
-
-      if (workoutError || !workout) {
-        throw new Error(`Failed to create workout: ${workoutError?.message}`)
+      // Adjust rep ranges based on RIR
+      switch (rirInfo.rir) {
+        case 3:
+          return Math.max(6, baseReps - 1) // Slightly lower reps, more weight
+        case 2:
+          return baseReps
+        case 1:
+          return baseReps + 1 // Push for extra rep
+        case 0:
+          return baseReps + 2 // Push to failure, aim for more reps
+        default:
+          return baseReps
       }
+    }
 
-      console.log(`✅ Created workout: ${workout.day_name}`)
+    // First, get the previous week's workouts to copy the actual exercises
+    console.log(`🔍 Fetching previous week (${weekNumber - 1}) exercises...`)
+    
+    const { data: previousWeek, error: prevWeekError } = await supabaseAdmin
+      .from('weeks')
+      .select(`
+        *,
+        workouts (
+          *,
+          exercises (
+            *,
+            sets (*)
+          )
+        )
+      `)
+      .eq('mesocycle_id', mesocycleId)
+      .eq('week_number', weekNumber - 1)
+      .single()
 
-      // Create basic exercises for this workout
-      const basicExercises = getBasicExercisesForWorkoutType(workoutType)
-      let exerciseOrder = 1
-
-      for (const exerciseName of basicExercises) {
-        const { data: exercise, error: exerciseError } = await supabaseAdmin
-          .from('exercises')
+    if (prevWeekError || !previousWeek) {
+      console.warn(`⚠️ Could not find previous week, using default exercises`)
+      // Fallback to default exercises if no previous week found
+      const workoutTypes = Object.keys(defaultSelectedSplit)
+      
+      for (let day = 1; day <= defaultTrainingDays; day++) {
+        const workoutTypeIndex = (day - 1) % workoutTypes.length
+        const workoutType = workoutTypes[workoutTypeIndex]
+        
+        const { data: workout, error: workoutError } = await supabaseAdmin
+          .from('workouts')
           .insert({
-            workout_id: workout.id,
-            name: exerciseName,
-            exercise_order: exerciseOrder++
+            week_id: week.id,
+            day_name: `Day ${day} - ${workoutType}`
           })
           .select()
           .single()
 
-        if (exerciseError || !exercise) {
-          throw new Error(`Failed to create exercise: ${exerciseError?.message}`)
+        if (workoutError || !workout) {
+          throw new Error(`Failed to create workout: ${workoutError?.message}`)
         }
 
-        // Get muscle group for this exercise
-        const muscleGroup = getMuscleGroupFromExercise(exerciseName)
-        
-        // Calculate adjusted sets based on user feedback
-        const adjustedSets = calculateAdjustedSets(
-          muscleGroup, 
-          weekNumber, 
-          userFeedback || []
-        )
-        
-        // Create sets with adjusted volume (default to 3 sets if calculation fails)
-        const setsToCreate = Math.max(2, adjustedSets || 3)
-        
-        for (let setNum = 1; setNum <= setsToCreate; setNum++) {
-          const { error: setError } = await supabaseAdmin
-            .from('sets')
-            .insert({
-              exercise_id: exercise.id,
-              set_number: setNum,
-              weight: 0,
-              reps: 8,
-              is_completed: false
-            })
+        const basicExercises = getBasicExercisesForWorkoutType(workoutType)
+        let exerciseOrder = 1
 
-          if (setError) {
-            throw new Error(`Failed to create set: ${setError.message}`)
+        for (const exerciseName of basicExercises) {
+          const { data: exercise, error: exerciseError } = await supabaseAdmin
+            .from('exercises')
+            .insert({
+              workout_id: workout.id,
+              name: exerciseName,
+              exercise_order: exerciseOrder++
+            })
+            .select()
+            .single()
+
+          if (exerciseError || !exercise) {
+            throw new Error(`Failed to create exercise: ${exerciseError?.message}`)
+          }
+
+          // Create basic sets
+          for (let setNum = 1; setNum <= 3; setNum++) {
+            const { error: setError } = await supabaseAdmin
+              .from('sets')
+              .insert({
+                exercise_id: exercise.id,
+                set_number: setNum,
+                weight: 100,
+                reps: 8,
+                is_completed: false
+              })
+
+            if (setError) {
+              throw new Error(`Failed to create set: ${setError.message}`)
+            }
           }
         }
-        
-        console.log(`✅ Created exercise: ${exerciseName} with ${setsToCreate} sets`)
+      }
+    } else {
+      console.log(`✅ Found previous week with ${previousWeek.workouts?.length} workouts`)
+      
+      // Copy workouts and exercises from previous week with progressive overload
+      for (const prevWorkout of previousWeek.workouts || []) {
+        const { data: newWorkout, error: workoutError } = await supabaseAdmin
+          .from('workouts')
+          .insert({
+            week_id: week.id,
+            day_name: prevWorkout.day_name.replace(`Week ${weekNumber - 1}`, `Week ${weekNumber}`)
+          })
+          .select()
+          .single()
+
+        if (workoutError || !newWorkout) {
+          throw new Error(`Failed to create workout: ${workoutError?.message}`)
+        }
+
+        console.log(`✅ Created workout: ${newWorkout.day_name}`)
+
+        // Copy exercises from previous week with progressive overload
+        for (const prevExercise of prevWorkout.exercises || []) {
+          const { data: newExercise, error: exerciseError } = await supabaseAdmin
+            .from('exercises')
+            .insert({
+              workout_id: newWorkout.id,
+              name: prevExercise.name,
+              exercise_order: prevExercise.exercise_order
+            })
+            .select()
+            .single()
+
+          if (exerciseError || !newExercise) {
+            throw new Error(`Failed to create exercise: ${exerciseError?.message}`)
+          }
+
+          // Get muscle group for this exercise
+          const muscleGroup = getMuscleGroupFromExercise(prevExercise.name)
+          
+          // Calculate adjusted sets based on user feedback
+          const adjustedSets = calculateAdjustedSets(
+            muscleGroup, 
+            weekNumber, 
+            userFeedback || []
+          )
+          
+          // Use previous week's set count as baseline, then apply autoregulation
+          const prevSetCount = prevExercise.sets?.length || 3
+          const setsToCreate = Math.max(2, adjustedSets || prevSetCount)
+          
+          // Get the last completed set from previous week for weight progression
+          const lastCompletedSet = prevExercise.sets
+            ?.filter(set => set.is_completed && set.weight > 0)
+            ?.sort((a, b) => b.set_number - a.set_number)[0]
+          
+          const baseWeight = lastCompletedSet?.weight || 100
+          const progressiveWeight = calculateProgressiveWeight(baseWeight, weekNumber, userFeedback || [], muscleGroup)
+          
+          // Get target reps based on RIR progression  
+          const targetReps = getTargetRepsForWeek(weekNumber, lastCompletedSet?.reps || 8)
+          
+          // Get RIR info for this week
+          const rirInfo = RIR_PROGRESSION[weekNumber as keyof typeof RIR_PROGRESSION] || RIR_PROGRESSION[4]
+          
+          console.log(`📋 ${prevExercise.name}: ${prevSetCount} → ${setsToCreate} sets, ${baseWeight}lbs → ${progressiveWeight}lbs`)
+          
+          for (let setNum = 1; setNum <= setsToCreate; setNum++) {
+            const { error: setError } = await supabaseAdmin
+              .from('sets')
+              .insert({
+                exercise_id: newExercise.id,
+                set_number: setNum,
+                weight: progressiveWeight,
+                reps: targetReps,
+                is_completed: false,
+                notes: `Week ${weekNumber} - ${rirInfo.description}`
+              })
+
+            if (setError) {
+              throw new Error(`Failed to create set: ${setError.message}`)
+            }
+          }
+          
+          console.log(`✅ Created exercise: ${prevExercise.name} with ${setsToCreate} sets`)
+        }
       }
     }
 
     const totalTime = Date.now() - startTime
-    console.log(`✅ Week ${weekNumber} created with autoregulation in ${totalTime}ms`)
+    const currentRirInfo = RIR_PROGRESSION[weekNumber as keyof typeof RIR_PROGRESSION] || RIR_PROGRESSION[4]
+    
+    console.log(`✅ Week ${weekNumber} created with RP autoregulation in ${totalTime}ms`)
+    console.log(`🎯 RIR Progression: ${currentRirInfo.description}`)
+    console.log('🔄 Applied RP-style autoregulation based on user feedback')
+
+    // Log detailed autoregulation
+    if (userFeedback && userFeedback.length > 0) {
+      console.log('📊 Autoregulation applied:')
+      userFeedback.forEach((feedback: UserFeedback) => {
+        const landmarks = VOLUME_LANDMARKS[feedback.muscleGroup as keyof typeof VOLUME_LANDMARKS]
+        const adjustedSets = calculateAdjustedSets(feedback.muscleGroup, weekNumber, userFeedback)
+        console.log(`  - ${feedback.muscleGroup}: ${feedback.difficulty} difficulty, ${feedback.soreness} soreness, ${feedback.performance} performance`)
+        console.log(`    Volume adjusted to ${adjustedSets} sets (MEV: ${landmarks?.MEV}, MRV: ${landmarks?.MRV})`)
+      })
+    }
 
     return NextResponse.json({ 
       success: true, 
       week,
+      method: 'rp-progressive-overload-database',
+      message: `RP-style progressive week created with autoregulation! Week ${weekNumber} - ${currentRirInfo.description}`,
+      progressionInfo: {
+        weekNumber: weekNumber,
+        rir: currentRirInfo.rir,
+        rirDescription: currentRirInfo.description,
+        weightProgression: '2.5% base increase (adjusted by feedback)',
+        autoregulationApplied: userFeedback ? true : false
+      },
       performance: {
         creationTime: totalTime,
-        setsCreated: 'calculated based on feedback',
-        autoregulationApplied: userFeedback ? true : false
+        workoutsCreated: defaultTrainingDays,
+        exercisesPerWorkout: 4, // Basic exercises per workout type
+        autoregulationApplied: userFeedback ? true : false,
+        rir_system: 'Mike Israetel RP methodology'
       }
     })
 
@@ -245,3 +480,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
