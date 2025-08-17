@@ -216,7 +216,7 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
       console.log('=====================================')
       
       // Show what the RP system will do with this feedback
-      feedback.forEach((muscleFeedback, index) => {
+      feedback.forEach((muscleFeedback: any, index: number) => {
         console.log(`\n${index + 1}. ${muscleFeedback.muscleGroup} Analysis:`)
         console.log(`   Difficulty: ${muscleFeedback.difficulty}`)
         console.log(`   Soreness: ${muscleFeedback.soreness}`)
