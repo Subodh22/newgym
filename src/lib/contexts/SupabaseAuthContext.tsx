@@ -70,9 +70,20 @@ export const SupabaseAuthProvider = ({ children }: { children: React.ReactNode }
         data: {
           full_name: fullName,
         },
-        emailConfirm: false,
       },
     })
+    
+    // If sign-up is successful, automatically sign in the user
+    if (data.user && !error) {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      if (signInError) {
+        return { data: null, error: signInError }
+      }
+    }
+    
     return { data, error }
   }
 
