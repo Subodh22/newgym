@@ -276,11 +276,25 @@ export default function Dashboard({ onSelectWorkout }: DashboardProps = {}) {
 
             return (
               <div key={status} className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-medium capitalize">{status}</h2>
-                  <Badge variant="secondary" className="text-xs">
-                    {filtered.length}
-                  </Badge>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-medium capitalize">{status}</h2>
+                    <Badge variant="secondary" className="text-xs">
+                      {filtered.length}
+                    </Badge>
+                  </div>
+                  
+                  {/* Show Create Program button only in planned section */}
+                  {status === 'planned' && (
+                    <Button
+                      onClick={() => setViewState('create')}
+                      size="sm"
+                      className="h-8 px-4"
+                    >
+                      <Zap className="h-3 w-3 mr-1" />
+                      Create Program
+                    </Button>
+                  )}
                 </div>
                 
                 <MesocycleList mesocycles={filtered} onUpdate={loadMesocycles} />
