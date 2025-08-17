@@ -47,10 +47,10 @@ export default function PWAInstallPrompt() {
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <h3 className="text-sm font-semibold text-gray-900">
-            Install Baliyoban
+            Install Astronaut Fitness
           </h3>
           <p className="text-xs text-gray-600 mt-1">
-            Install this app on your device for quick and easy access
+            Install this fitness app on your device for quick and easy access
           </p>
         </div>
         <div className="flex space-x-2 ml-4">
