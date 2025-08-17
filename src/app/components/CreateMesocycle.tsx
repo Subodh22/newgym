@@ -510,7 +510,7 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
               <div key={workoutType}>
                 <h4 className="font-medium mb-2">{workoutType}</h4>
                 <div className="space-y-1 text-sm text-gray-600">
-                  {Object.entries(exercises).map(([exercise, data]) => {
+                  {Object.entries(exercises as any).map(([exercise, data]) => {
                     const totalExercisesForMuscle = calculateTotalExercisesForMuscleGroup(workoutPlans, (data as any).muscleGroup)
                     return (
                       <div key={exercise} className="flex justify-between">
