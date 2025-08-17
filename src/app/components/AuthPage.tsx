@@ -25,8 +25,16 @@ export default function AuthPage() {
         setMessage('Successfully signed in!')
       } else {
         const { error } = await signUp(email, password, fullName)
-        if (error) throw error
-        setMessage('Account created and signed in successfully!')
+        if (error) {
+          // Handle email confirmation error gracefully
+          if (error.message.includes('Email not confirmed') || error.message.includes('email')) {
+            setMessage('Account created! Please check your email for confirmation link, then sign in.')
+          } else {
+            throw error
+          }
+        } else {
+          setMessage('Account created and signed in successfully!')
+        }
       }
     } catch (error: any) {
       setMessage(error.message)
@@ -105,6 +113,11 @@ export default function AuthPage() {
           {message && (
             <div className={`text-sm text-center ${message.includes('error') || message.includes('Error') ? 'text-red-600' : 'text-green-600'}`}>
               {message}
+              {message.includes('check your email') && (
+                <div className="mt-2 text-xs text-gray-500">
+                  💡 To disable email confirmation: Go to Supabase Dashboard → Authentication → Settings → Disable "Enable email confirmations"
+                </div>
+              )}
             </div>
           )}
 
