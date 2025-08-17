@@ -169,7 +169,7 @@ export function ExerciseFeedback({ exerciseName, muscleGroup, onSubmit, onSkip, 
         </div>
 
         <div className="text-xs text-gray-500 text-center">
-          <p>💡 This feedback helps adjust your next workout's volume and intensity.</p>
+          <p>💡 This feedback helps adjust your next workout&apos;s volume and intensity.</p>
         </div>
       </CardContent>
     </Card>
