@@ -247,16 +247,18 @@ export default function Dashboard({ onSelectWorkout }: DashboardProps = {}) {
         )
       })()}
 
-      {/* Action Buttons */}
-      <div className="flex justify-center">
-        <Button
-          onClick={() => setViewState('create')}
-          className="h-16 px-8 flex-col gap-1"
-        >
-          <Zap className="h-5 w-5" />
-          <span className="text-xs">Create Program</span>
-        </Button>
-      </div>
+      {/* Action Buttons - Only show when no active mesocycles */}
+      {!mesocycles.some(m => m.is_active) && (
+        <div className="flex justify-center">
+          <Button
+            onClick={() => setViewState('create')}
+            className="h-16 px-8 flex-col gap-1"
+          >
+            <Zap className="h-5 w-5" />
+            <span className="text-xs">Create Program</span>
+          </Button>
+        </div>
+      )}
 
 
 
