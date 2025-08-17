@@ -110,7 +110,7 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
   }
 
   const addExerciseToWorkout = (workoutType: string, exercise: string, muscleGroup: string) => {
-    setWorkoutPlans(prev => ({
+    setWorkoutPlans((prev: any) => ({
       ...prev,
       [workoutType]: {
         ...prev[workoutType],
@@ -125,7 +125,7 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
   }
 
   const removeExerciseFromWorkout = (workoutType: string, exercise: string) => {
-    setWorkoutPlans(prev => {
+    setWorkoutPlans((prev: any) => {
       const updated = { ...prev }
       if (updated[workoutType]) {
         delete updated[workoutType][exercise]
