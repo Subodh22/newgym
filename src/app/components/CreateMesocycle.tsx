@@ -403,7 +403,7 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
                 <CardTitle className="text-base">{workoutType}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {muscleGroups.map(muscleGroup => (
+                {muscleGroups.map((muscleGroup: string) => (
                   <div key={muscleGroup}>
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-medium text-sm">{muscleGroup}</h4>
