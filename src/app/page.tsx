@@ -8,6 +8,7 @@ import { MobileNavigation } from "@/app/components/MobileNavigation"
 import { UserProfile } from "@/app/components/UserProfile"
 import { DayView } from "@/app/components/DayView"
 import Dashboard from "@/app/components/Dashboard"
+import PWAInstallPrompt from "@/app/components/PWAInstallPrompt"
 
 type ViewState = 
   | { type: 'tab', tab: 'current' | 'mesocycles' | 'profile' }
@@ -81,6 +82,9 @@ export default function Home() {
           onTabChange={(tab) => setViewState({ type: 'tab', tab })} 
         />
       )}
+
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
     </div>
   )
 }
