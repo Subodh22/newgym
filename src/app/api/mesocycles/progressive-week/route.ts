@@ -114,6 +114,32 @@ export async function POST(request: NextRequest) {
       }, { status: 409 }) // Conflict status
     }
 
+    // Check if week number exceeds mesocycle's total weeks
+    const { data: mesocycle, error: mesocycleError } = await supabaseAdmin
+      .from('mesocycles')
+      .select('number_of_weeks, name')
+      .eq('id', mesocycleId)
+      .single()
+
+    if (mesocycleError || !mesocycle) {
+      console.error('❌ Failed to fetch mesocycle:', mesocycleError)
+      return NextResponse.json({
+        error: 'Failed to fetch mesocycle information'
+      }, { status: 500 })
+    }
+
+    if (weekNumber > mesocycle.number_of_weeks) {
+      console.log(`🎉 Mesocycle "${mesocycle.name}" completed! Week ${weekNumber} exceeds total weeks (${mesocycle.number_of_weeks})`)
+      return NextResponse.json({
+        success: true,
+        completed: true,
+        message: `Congratulations! You've completed all ${mesocycle.number_of_weeks} weeks of your "${mesocycle.name}" mesocycle!`,
+        mesocycleName: mesocycle.name,
+        totalWeeks: mesocycle.number_of_weeks,
+        completedWeeks: weekNumber - 1
+      }, { status: 200 })
+    }
+
     // Create the week
     const weekName = `Week ${weekNumber}`
     console.log(`🔄 Creating new week: ${weekName} for mesocycle ${mesocycleId}`)
@@ -148,20 +174,18 @@ export async function POST(request: NextRequest) {
       if (muscleFeedback) {
         let volumeAdjustment = 0
 
-        // ONLY adjust based on explicit user feedback
+        // Progressive overload by default, unless user says it's too hard or hard
         switch (muscleFeedback.difficulty) {
-          case 'easy':
-            volumeAdjustment += 1 // Add 1 set if user says it was too easy
-            console.log(`📈 Adding 1 set for ${muscleGroup} (user feedback: too easy)`)
-            break
           case 'too_hard':
-            volumeAdjustment -= 1 // Remove 1 set if user says it was too hard
-            console.log(`📉 Removing 1 set for ${muscleGroup} (user feedback: too hard)`)
-            break
           case 'hard':
+            volumeAdjustment -= 1 // Remove 1 set if user says it was too hard or hard
+            console.log(`📉 Removing 1 set for ${muscleGroup} (user feedback: ${muscleFeedback.difficulty})`)
+            break
+          case 'easy':
           case 'moderate':
-            // Keep same volume for moderate/hard - user didn't request change
-            console.log(`🔄 Keeping same volume for ${muscleGroup} (user feedback: ${muscleFeedback.difficulty})`)
+            // Progressive overload - add 1 set by default
+            volumeAdjustment += 1
+            console.log(`📈 Progressive overload: Adding 1 set for ${muscleGroup} (user feedback: ${muscleFeedback.difficulty})`)
             break
         }
 
@@ -191,11 +215,18 @@ export async function POST(request: NextRequest) {
 
       const muscleFeedback = feedback.find(f => f.muscleGroup === muscleGroup)
       
-      // ONLY adjust weight if user explicitly says it was too easy AND there's a weight to increase
-      if (muscleFeedback && muscleFeedback.difficulty === 'easy' && workingWeight > 0) {
-        // Small increase only when user says it was too easy
-        const newWeight = workingWeight * (1 + USER_REQUESTED_INCREASE)
-        console.log(`📈 Increasing weight for "${exerciseName}" from ${workingWeight}kg to ${Math.round(newWeight * 4) / 4}kg (user feedback: too easy)`)
+      // Progressive overload by default, unless user says it's too hard or hard
+      if (muscleFeedback && (muscleFeedback.difficulty === 'too_hard' || muscleFeedback.difficulty === 'hard')) {
+        // Reduce weight when user says it was too hard or hard
+        const reductionRate = 0.05 // 5% reduction for safety
+        const newWeight = workingWeight * (1 - reductionRate)
+        console.log(`📉 Reducing weight for "${exerciseName}" from ${workingWeight}kg to ${Math.round(newWeight * 4) / 4}kg (user feedback: ${muscleFeedback.difficulty})`)
+        return Math.round(newWeight * 4) / 4 // Round to nearest 0.25kg
+      } else {
+        // Progressive overload - increase weight by default
+        const increaseRate = 0.025 // 2.5% increase per week
+        const newWeight = workingWeight * (1 + increaseRate)
+        console.log(`📈 Progressive overload: "${exerciseName}" from ${workingWeight}kg to ${Math.round(newWeight * 4) / 4}kg`)
         return Math.round(newWeight * 4) / 4 // Round to nearest 0.25kg
       }
 
@@ -203,11 +234,39 @@ export async function POST(request: NextRequest) {
       return workingWeight
     }
 
-    const getTargetRepsForWeek = (weekNumber: number, baseReps: number = 8) => {
-      // Keep the same reps as previous week - NO automatic changes
-      // User can manually adjust reps in the UI if they want
-      console.log(`🔄 Keeping same rep target: ${baseReps} (no automatic rep changes)`)
-      return baseReps
+    // Professional rep progression system
+    const REP_PROGRESSION = {
+      1: { reps: 6, phase: 'Strength', description: 'Low rep strength focus' },
+      2: { reps: 8, phase: 'Strength-Hypertrophy', description: 'Moderate rep strength building' },
+      3: { reps: 10, phase: 'Hypertrophy', description: 'Hypertrophy focus' },
+      4: { reps: 12, phase: 'Hypertrophy-Endurance', description: 'High rep hypertrophy' },
+      5: { reps: 16, phase: 'Endurance', description: 'Endurance and conditioning' }
+    }
+
+    const getTargetRepsForWeek = (weekNumber: number, baseReps: number = 8, feedback: UserFeedback[], muscleGroup: string, exerciseName: string = '') => {
+      const muscleFeedback = feedback.find(f => f.muscleGroup === muscleGroup)
+      
+      // Get the target rep range for this week based on progression
+      const weekRepInfo = REP_PROGRESSION[weekNumber as keyof typeof REP_PROGRESSION] || REP_PROGRESSION[2]
+      let targetReps = weekRepInfo.reps
+      
+      // Adjust based on user feedback
+      if (muscleFeedback && (muscleFeedback.difficulty === 'too_hard' || muscleFeedback.difficulty === 'hard')) {
+        // If too hard, reduce to previous week's rep range or minimum
+        const previousWeekReps = REP_PROGRESSION[(weekNumber - 1) as keyof typeof REP_PROGRESSION]?.reps || 6
+        targetReps = Math.max(6, previousWeekReps)
+        console.log(`📉 Reducing reps for "${exerciseName}" to ${targetReps} (user feedback: ${muscleFeedback.difficulty})`)
+      } else if (muscleFeedback && muscleFeedback.difficulty === 'easy') {
+        // If easy, can progress to next week's rep range
+        const nextWeekReps = REP_PROGRESSION[(weekNumber + 1) as keyof typeof REP_PROGRESSION]?.reps || weekRepInfo.reps
+        targetReps = nextWeekReps
+        console.log(`📈 Progressive overload: "${exerciseName}" reps to ${targetReps} (user feedback: easy)`)
+      } else {
+        // Default progression based on week
+        console.log(`📊 Professional rep progression: "${exerciseName}" ${targetReps} reps (${weekRepInfo.phase} phase)`)
+      }
+      
+      return targetReps
     }
 
     // First, get the previous week's workouts to copy the actual exercises
@@ -337,21 +396,21 @@ export async function POST(request: NextRequest) {
           const prevSetCount = prevExercise.sets?.length || 3
           const setsToCreate = Math.max(2, adjustedSets || prevSetCount)
           
-          // Get the last completed set from previous week for weight progression
-          const lastCompletedSet = prevExercise.sets
-            ?.filter((set: any) => set.is_completed && set.weight > 0)
+          // Get the last set from previous week for weight progression (completed or not)
+          const lastSet = prevExercise.sets
             ?.sort((a: any, b: any) => b.set_number - a.set_number)[0]
           
-          const baseWeight = lastCompletedSet?.weight || 0  // Use 0 if no previous data - no assumptions
+          const baseWeight = lastSet?.weight || 0  // Use 0 if no previous data - no assumptions
           const progressiveWeight = calculateProgressiveWeight(baseWeight, weekNumber, userFeedback || [], muscleGroup, prevExercise.name)
           
-          // Get target reps based on RIR progression  
-          const targetReps = getTargetRepsForWeek(weekNumber, lastCompletedSet?.reps || 8)
+          // Get target reps based on progressive overload
+          const targetReps = getTargetRepsForWeek(weekNumber, lastSet?.reps || 8, userFeedback || [], muscleGroup, prevExercise.name)
           
           // Get RIR info for this week
           const rirInfo = RIR_PROGRESSION[weekNumber as keyof typeof RIR_PROGRESSION] || RIR_PROGRESSION[4]
           
-          console.log(`📋 ${prevExercise.name}: ${prevSetCount} → ${setsToCreate} sets, ${baseWeight}kg → ${progressiveWeight}kg (user-driven only)`)
+          const weekRepInfo = REP_PROGRESSION[weekNumber as keyof typeof REP_PROGRESSION] || REP_PROGRESSION[2]
+          console.log(`📋 ${prevExercise.name}: ${prevSetCount} → ${setsToCreate} sets, ${baseWeight}kg → ${progressiveWeight}kg, ${lastSet?.reps || 8} → ${targetReps} reps (${weekRepInfo.phase} phase)`)
           
           for (let setNum = 1; setNum <= setsToCreate; setNum++) {
             const { error: setError } = await supabaseAdmin
@@ -378,20 +437,18 @@ export async function POST(request: NextRequest) {
     const totalTime = Date.now() - startTime
     const currentRirInfo = RIR_PROGRESSION[weekNumber as keyof typeof RIR_PROGRESSION] || RIR_PROGRESSION[4]
     
-    console.log(`✅ Week ${weekNumber} created with user-driven progression in ${totalTime}ms`)
-    console.log('🔄 Applied user-driven adjustments based on explicit feedback only')
+    console.log(`✅ Week ${weekNumber} created with progressive overload in ${totalTime}ms`)
+    console.log('🔄 Applied progressive overload - increases by default, reduces when too hard')
 
-    // Log detailed user-driven adjustments
+    // Log detailed progressive overload adjustments
     if (userFeedback && userFeedback.length > 0) {
-      console.log('📊 User-driven adjustments applied:')
+      console.log('📊 Progressive overload adjustments applied:')
       userFeedback.forEach((feedback: UserFeedback) => {
         console.log(`  - ${feedback.muscleGroup}: ${feedback.difficulty} difficulty, ${feedback.soreness} soreness, ${feedback.performance} performance`)
-        if (feedback.difficulty === 'easy') {
-          console.log(`    ✅ Weight increased (user said it was too easy)`)
-        } else if (feedback.difficulty === 'too_hard') {
-          console.log(`    ✅ Volume reduced (user said it was too hard)`)
+        if (feedback.difficulty === 'too_hard' || feedback.difficulty === 'hard') {
+          console.log(`    ✅ Weight and volume reduced (user said it was ${feedback.difficulty})`)
         } else {
-          console.log(`    ✅ No changes (user didn't request adjustments)`)
+          console.log(`    ✅ Progressive overload applied (weight and volume increased)`)
         }
       })
     }
@@ -400,12 +457,14 @@ export async function POST(request: NextRequest) {
       success: true, 
       week,
       method: 'rp-progressive-overload-database',
-      message: `User-driven progressive week created! Week ${weekNumber} - Changes only when you request them`,
+      message: `Professional progressive overload week created! Week ${weekNumber} - Structured rep progression with weight and volume increases`,
       progressionInfo: {
         weekNumber: weekNumber,
-        weightProgression: 'Only increases when user says exercise was "easy"',
-        volumeProgression: 'Only changes when user says exercise was "easy" or "too hard"',
-        userDrivenApproach: true,
+        weightProgression: 'Increases by 2.5% by default, reduces when too hard or hard',
+        repsProgression: 'Professional progression: 6→8→10→12→16 reps by week, adjusts based on feedback',
+        volumeProgression: 'Adds 1 set by default, reduces when too hard or hard',
+        repPhase: REP_PROGRESSION[weekNumber as keyof typeof REP_PROGRESSION]?.phase || 'Strength-Hypertrophy',
+        progressiveOverload: true,
         adjustmentsApplied: userFeedback ? true : false
       },
       performance: {

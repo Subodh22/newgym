@@ -9,6 +9,7 @@ import { Badge } from './ui/badge'
 import { ArrowLeft, Clock, Calendar, Plus, CheckCircle2 } from 'lucide-react'
 import { updateWorkout, getMesocycles } from '@/lib/supabase/database'
 import { useSupabaseAuth } from '@/lib/hooks/useSupabaseAuth'
+import MesocycleCompletion from './MesocycleCompletion'
 
 interface DayViewProps {
   workout: any
@@ -22,6 +23,8 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
   const [loading, setLoading] = useState(false)
   const [showFeedback, setShowFeedback] = useState(false)
   const [feedbackLoading, setFeedbackLoading] = useState(false)
+  const [showCompletion, setShowCompletion] = useState(false)
+  const [completionData, setCompletionData] = useState<any>(null)
 
   const refreshWorkout = async () => {
     if (!user) return
@@ -337,9 +340,17 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
       }
 
       const result = await response.json()
-      console.log('✅ Next week created with autoregulation:', result)
+      console.log('✅ Progressive week response:', result)
       
       setShowFeedback(false)
+      
+      // Check if mesocycle is completed
+      if (result.completed) {
+        console.log('🎉 Mesocycle completed!', result)
+        setCompletionData(result)
+        setShowCompletion(true)
+        return
+      }
       
       // Show success message with RP details
       const rirInfo = result.progressionInfo?.rirDescription || `Week ${result.progressionInfo?.weekNumber} progression`
@@ -502,6 +513,26 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
             />
           </div>
         </div>
+      )}
+
+      {/* Mesocycle Completion Page */}
+      {showCompletion && completionData && (
+        <MesocycleCompletion
+          mesocycleName={completionData.mesocycleName}
+          totalWeeks={completionData.totalWeeks}
+          completedWeeks={completionData.completedWeeks}
+          onBack={() => {
+            setShowCompletion(false)
+            setCompletionData(null)
+            onBack()
+          }}
+          onCreateNewMesocycle={() => {
+            setShowCompletion(false)
+            setCompletionData(null)
+            // Navigate to create new mesocycle - you'll need to implement this
+            window.location.href = '/'
+          }}
+        />
       )}
     </div>
   )
