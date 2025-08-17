@@ -267,14 +267,7 @@ export default function Dashboard({ onSelectWorkout }: DashboardProps = {}) {
         </Button>
       </div>
 
-      {/* Debug Button - Temporary */}
-      <Button
-        variant="outline"
-        onClick={() => setViewState('debug')}
-        className="w-full text-xs"
-      >
-        🔧 Debug Auth & Database
-      </Button>
+
 
       {/* Mesocycles by Status */}
       {mesocycles.length > 0 ? (
