@@ -395,7 +395,7 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
         </div>
 
         {workoutTypes.map(workoutType => {
-          const muscleGroups = TRAINING_SPLITS[selectedSplit as keyof typeof TRAINING_SPLITS][workoutType as keyof typeof TRAINING_SPLITS[typeof selectedSplit]]
+          const muscleGroups = (TRAINING_SPLITS as any)[selectedSplit][workoutType]
           
           return (
             <Card key={workoutType}>
