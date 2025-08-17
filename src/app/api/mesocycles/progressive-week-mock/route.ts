@@ -34,14 +34,8 @@ const RIR_PROGRESSION = {
   deload: { rir: 3, description: 'Deload: 3-4 RIR - Active recovery' }
 }
 
-// Weight progression percentages based on week and feedback
-const WEIGHT_PROGRESSION = {
-  base: 0.025, // 2.5% base increase per week
-  easy: 0.035, // 3.5% increase if too easy
-  moderate: 0.025, // 2.5% standard increase
-  hard: 0.015, // 1.5% smaller increase if hard
-  too_hard: 0.0 // No increase if too hard
-}
+// Weight progression - only used when user explicitly says exercise was "easy"
+const USER_REQUESTED_INCREASE = 0.025 // 2.5% increase when user says it was too easy
 
 const getBasicExercisesForWorkoutType = (workoutType: string): string[] => {
   switch (workoutType) {
@@ -98,163 +92,72 @@ export async function POST(request: NextRequest) {
     const defaultSelectedSplit = selectedSplit || { 'Push': [], 'Pull': [], 'Legs': [] }
     const workoutTypes = Object.keys(defaultSelectedSplit)
 
-    const calculateAdjustedSets = (muscleGroup: string, baseWeek: number, feedback: UserFeedback[]) => {
+    const calculateAdjustedSets = (muscleGroup: string, previousSetCount: number, feedback: UserFeedback[]) => {
       const landmarks = VOLUME_LANDMARKS[muscleGroup as keyof typeof VOLUME_LANDMARKS]
-      if (!landmarks) return 3
-
-      // Progressive volume increase from MEV towards MRV over 4-5 weeks
-      const weeklyProgression = (landmarks.MRV - landmarks.MEV) / 4
-      let baseSets = Math.max(landmarks.MEV, Math.round(landmarks.MEV + (weeklyProgression * (baseWeek - 1))))
+      const minSets = landmarks?.MEV || 2
+      const maxSets = landmarks?.MRV || 25
+      
+      // Start with previous week's set count - NO automatic progression
+      let adjustedSets = previousSetCount || 3
 
       const muscleFeedback = feedback.find(f => f.muscleGroup === muscleGroup)
       if (muscleFeedback) {
-        // RP-style autoregulation based on comprehensive feedback
         let volumeAdjustment = 0
 
-        // Primary adjustment based on difficulty
+        // ONLY adjust based on explicit user feedback
         switch (muscleFeedback.difficulty) {
           case 'easy':
-            volumeAdjustment += 2 // Add 2 sets if too easy
-            break
-          case 'hard':
-            volumeAdjustment -= 1 // Remove 1 set if hard
+            volumeAdjustment += 1 // Add 1 set if user says it was too easy
+            console.log(`📈 Adding 1 set for ${muscleGroup} (user feedback: too easy)`)
             break
           case 'too_hard':
-            volumeAdjustment -= 3 // Significant reduction if too hard
+            volumeAdjustment -= 1 // Remove 1 set if user says it was too hard
+            console.log(`📉 Removing 1 set for ${muscleGroup} (user feedback: too hard)`)
+            break
+          case 'hard':
+          case 'moderate':
+            // Keep same volume for moderate/hard - user didn't request change
+            console.log(`🔄 Keeping same volume for ${muscleGroup} (user feedback: ${muscleFeedback.difficulty})`)
             break
         }
 
-        // Secondary adjustments based on soreness
-        switch (muscleFeedback.soreness) {
-          case 'severe':
-            volumeAdjustment -= 1 // Reduce volume for severe soreness
-            break
-          case 'none':
-            volumeAdjustment += 1 // Can handle more volume if no soreness
-            break
+        // Additional adjustment only for severe soreness (safety)
+        if (muscleFeedback.soreness === 'severe') {
+          volumeAdjustment -= 1 // Safety reduction for severe soreness
+          console.log(`⚠️ Reducing 1 set for ${muscleGroup} due to severe soreness`)
         }
 
-        // Performance-based adjustments
-        switch (muscleFeedback.performance) {
-          case 'improved':
-            volumeAdjustment += 1 // Reward improvement with more volume
-            break
-          case 'decreased':
-            volumeAdjustment -= 2 // Reduce volume if performance declined
-            break
-        }
-
-        // Pump quality adjustments (if available)
-        if (muscleFeedback.pumpQuality) {
-          if (muscleFeedback.pumpQuality <= 2) {
-            volumeAdjustment += 1 // Poor pump = need more volume
-          } else if (muscleFeedback.pumpQuality >= 4) {
-            volumeAdjustment -= 1 // Great pump = volume is sufficient
-          }
-        }
-
-        // Recovery-based adjustments (if available)
-        if (muscleFeedback.recovery) {
-          switch (muscleFeedback.recovery) {
-            case 'poor':
-              volumeAdjustment -= 2
-              break
-            case 'excellent':
-              volumeAdjustment += 1
-              break
-          }
-        }
-
-        baseSets += volumeAdjustment
+        adjustedSets += volumeAdjustment
+      } else {
+        // No feedback = no changes
+        console.log(`🔄 No feedback for ${muscleGroup}, keeping ${adjustedSets} sets`)
       }
 
-      // Ensure we stay within physiological limits
-      return Math.max(landmarks.MEV, Math.min(landmarks.MRV, baseSets))
+      // Ensure we stay within safe limits
+      return Math.max(minSets, Math.min(maxSets, adjustedSets))
     }
 
-    // Exercise-specific baseline weights (in kg) for when no previous data exists
-    const BASELINE_WEIGHTS = {
-      // Chest exercises
-      'Dumbbell Bench Press': 25,
-      'Barbell Bench Press': 60,
-      'Incline Dumbbell Press': 22.5,
-      'Push-ups': 0, // Bodyweight
-      'Chest Flyes': 15,
-      'Cable Flyes': 20,
-      
-      // Shoulder exercises
-      'Shoulder Press': 20,
-      'Lateral Raises': 10,
-      'Front Raises': 12.5,
-      'Rear Delt Flyes': 10,
-      
-      // Triceps exercises
-      'Tricep Dips': 0, // Bodyweight
-      'Overhead Tricep Extension': 25,
-      'Tricep Pushdowns': 30,
-      
-      // Back exercises
-      'Pull-ups': 0, // Bodyweight
-      'Lat Pulldowns': 40,
-      'Seated Rows': 35,
-      'Barbell Rows': 45,
-      'T-Bar Rows': 40,
-      
-      // Biceps exercises
-      'Bicep Curls': 15,
-      'Hammer Curls': 17.5,
-      'Preacher Curls': 12.5,
-      
-      // Leg exercises
-      'Squats': 60,
-      'Deadlifts': 80,
-      'Leg Press': 100,
-      'Leg Curls': 30,
-      'Leg Extensions': 35,
-      'Calf Raises': 40,
-      
-      // Default fallback
-      'default': 20
-    }
+    // No baseline weights - user sets their own starting weights
 
     const calculateProgressiveWeight = (baseWeight: number, weekNumber: number, feedback: UserFeedback[], muscleGroup: string, exerciseName: string = '') => {
+      // Use exactly what the previous week had - NO assumptions, NO baseline weights
       let workingWeight = baseWeight
 
-      // If baseWeight is 0 or very low, use baseline weight for the exercise
-      if (baseWeight === 0 || baseWeight < 5) {
-        workingWeight = BASELINE_WEIGHTS[exerciseName] || BASELINE_WEIGHTS['default']
-        console.log(`🏋️ Using baseline weight for "${exerciseName}": ${workingWeight}kg (previous was ${baseWeight}kg)`)
-      }
+      console.log(`🔄 Using previous weight for "${exerciseName}": ${workingWeight}kg (no automatic assumptions)`)
 
       const muscleFeedback = feedback.find(f => f.muscleGroup === muscleGroup)
-      let progressionRate = WEIGHT_PROGRESSION.moderate
-
-      if (muscleFeedback) {
-        switch (muscleFeedback.difficulty) {
-          case 'easy':
-            progressionRate = WEIGHT_PROGRESSION.easy
-            break
-          case 'hard':
-            progressionRate = WEIGHT_PROGRESSION.hard
-            break
-          case 'too_hard':
-            progressionRate = WEIGHT_PROGRESSION.too_hard
-            break
-          default:
-            progressionRate = WEIGHT_PROGRESSION.moderate
-        }
-
-        // Additional adjustments based on performance
-        if (muscleFeedback.performance === 'improved') {
-          progressionRate *= 1.2 // 20% bonus for improved performance
-        } else if (muscleFeedback.performance === 'decreased') {
-          progressionRate *= 0.5 // 50% reduction for decreased performance
-        }
+      
+      // ONLY adjust weight if user explicitly says it was too easy AND there's a weight to increase
+      if (muscleFeedback && muscleFeedback.difficulty === 'easy' && workingWeight > 0) {
+        // Small increase only when user says it was too easy
+        const USER_REQUESTED_INCREASE = 0.025 // 2.5% increase
+        const newWeight = workingWeight * (1 + USER_REQUESTED_INCREASE)
+        console.log(`📈 Increasing weight for "${exerciseName}" from ${workingWeight}kg to ${Math.round(newWeight * 4) / 4}kg (user feedback: too easy)`)
+        return Math.round(newWeight * 4) / 4 // Round to nearest 0.25kg
       }
 
-      // Apply weekly progression
-      const newWeight = workingWeight * (1 + progressionRate)
-      return Math.round(newWeight * 4) / 4 // Round to nearest 0.25kg
+      // For all cases including 0 weight, keep exactly what it was
+      return workingWeight
     }
 
     const getTargetRepsForWeek = (weekNumber: number, baseReps: number = 8) => {
@@ -284,7 +187,7 @@ export async function POST(request: NextRequest) {
       created_at: new Date().toISOString()
     }
 
-    const mockWorkouts = []
+    const mockWorkouts: any[] = []
     let totalSetsCreated = 0
 
     // Create mock workouts
@@ -292,7 +195,7 @@ export async function POST(request: NextRequest) {
       const workoutTypeIndex = (day - 1) % workoutTypes.length
       const workoutType = workoutTypes[workoutTypeIndex]
       
-      const mockWorkout = {
+      const mockWorkout: any = {
         id: Math.floor(Math.random() * 1000) + day * 1000,
         week_id: mockWeek.id,
         day_name: `Day ${day} - ${workoutType}`,
@@ -318,15 +221,15 @@ export async function POST(request: NextRequest) {
           console.log(`📊 Volume Landmarks - MEV: ${landmarks.MEV}, MAV: ${landmarks.MAV}, MRV: ${landmarks.MRV}`)
         }
         
-        const adjustedSets = calculateAdjustedSets(muscleGroup, weekNumber, userFeedback || [])
+        const adjustedSets = calculateAdjustedSets(muscleGroup, 3, userFeedback || []) // Use default 3 sets for new workouts
         const setsToCreate = Math.max(2, adjustedSets || 3)
         totalSetsCreated += setsToCreate
         
         console.log(`🔢 Calculated Sets: ${adjustedSets} → Final Sets: ${setsToCreate}`)
 
-        // Progressive weight calculation (assuming previous week's weight was stored)
-        const baseWeight = 0 // Changed to 0 to trigger baseline weight logic
-        const progressiveWeight = calculateProgressiveWeight(baseWeight, weekNumber, userFeedback || [], muscleGroup, exercise.name)
+        // Progressive weight calculation - start with 0 (no assumptions)
+        const baseWeight = 0 // User sets their own starting weights
+        const progressiveWeight = calculateProgressiveWeight(baseWeight, weekNumber, userFeedback || [], muscleGroup, exerciseName)
         
         const progressionPercentage = baseWeight > 0 ? ((progressiveWeight - baseWeight) / baseWeight * 100).toFixed(1) : 'baseline'
         console.log(`⚖️ Weight Progression: ${baseWeight}kg → ${progressiveWeight}kg (${progressionPercentage}% change)`)
@@ -388,16 +291,16 @@ export async function POST(request: NextRequest) {
     console.log('\n🎯 PER-WORKOUT BREAKDOWN:')
     console.log('========================')
     mockWorkouts.forEach((workout, index) => {
-      const workoutSets = workout.exercises.reduce((sum, ex) => sum + ex.sets.length, 0)
+      const workoutSets = workout.exercises.reduce((sum: number, ex: any) => sum + ex.sets.length, 0)
       console.log(`${workout.day_name}: ${workout.exercises.length} exercises, ${workoutSets} sets`)
     })
 
     // Log detailed autoregulation
     if (userFeedback && userFeedback.length > 0) {
       console.log('📊 Autoregulation applied:')
-      userFeedback.forEach(feedback => {
+      userFeedback.forEach((feedback: UserFeedback) => {
         const landmarks = VOLUME_LANDMARKS[feedback.muscleGroup as keyof typeof VOLUME_LANDMARKS]
-        const adjustedSets = calculateAdjustedSets(feedback.muscleGroup, weekNumber, userFeedback)
+        const adjustedSets = calculateAdjustedSets(feedback.muscleGroup, 3, userFeedback) // Use 3 as default for logging
         console.log(`  - ${feedback.muscleGroup}: ${feedback.difficulty} difficulty, ${feedback.soreness} soreness, ${feedback.performance} performance`)
         console.log(`    Volume adjusted to ${adjustedSets} sets (MEV: ${landmarks?.MEV}, MRV: ${landmarks?.MRV})`)
       })
@@ -408,12 +311,12 @@ export async function POST(request: NextRequest) {
       week: mockWeek,
       workouts: mockWorkouts,
       method: 'rp-progressive-overload-simulation',
-      message: `RP-style progressive week created with autoregulation! Week ${weekNumber} - ${currentRirInfo.description}`,
+      message: `User-driven progressive week created! Week ${weekNumber} - Changes only when you request them`,
       progressionInfo: {
         weekNumber: weekNumber,
         rir: currentRirInfo.rir,
         rirDescription: currentRirInfo.description,
-        weightProgression: '2.5% base increase (adjusted by feedback)',
+        weightProgression: 'Only increases when user says exercise was "easy"',
         autoregulationApplied: userFeedback ? true : false
       },
       stats: {
