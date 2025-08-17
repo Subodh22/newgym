@@ -248,22 +248,13 @@ export default function Dashboard({ onSelectWorkout }: DashboardProps = {}) {
       })()}
 
       {/* Action Buttons */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="flex justify-center">
         <Button
           onClick={() => setViewState('create')}
-          className="flex-1 h-16 flex-col gap-1"
+          className="h-16 px-8 flex-col gap-1"
         >
           <Zap className="h-5 w-5" />
           <span className="text-xs">Create Program</span>
-        </Button>
-        
-        <Button
-          variant="outline"
-          onClick={() => setViewState('import')}
-          className="flex-1 h-16 flex-col gap-1"
-        >
-          <Upload className="h-5 w-5" />
-          <span className="text-xs">Import Data</span>
         </Button>
       </div>
 
@@ -303,14 +294,10 @@ export default function Dashboard({ onSelectWorkout }: DashboardProps = {}) {
             <p className="text-sm text-gray-500 mb-6">
               Create your first mesocycle to get started with structured training
             </p>
-            <div className="flex gap-3 justify-center">
+            <div className="flex justify-center">
               <Button onClick={() => setViewState('create')}>
                 <Zap className="h-4 w-4 mr-2" />
                 Create Program
-              </Button>
-              <Button variant="outline" onClick={() => setViewState('import')}>
-                <Upload className="h-4 w-4 mr-2" />
-                Import Data
               </Button>
             </div>
           </CardContent>
