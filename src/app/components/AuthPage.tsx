@@ -26,7 +26,7 @@ export default function AuthPage() {
       } else {
         const { error } = await signUp(email, password, fullName)
         if (error) throw error
-        setMessage('Check your email for the confirmation link!')
+        setMessage('Account created successfully! You can now sign in.')
       }
     } catch (error: any) {
       setMessage(error.message)

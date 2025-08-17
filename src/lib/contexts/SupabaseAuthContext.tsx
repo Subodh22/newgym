@@ -70,6 +70,7 @@ export const SupabaseAuthProvider = ({ children }: { children: React.ReactNode }
         data: {
           full_name: fullName,
         },
+        emailConfirm: false,
       },
     })
     return { data, error }
