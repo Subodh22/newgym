@@ -57,9 +57,9 @@ export default function Home() {
 
     switch (viewState.tab) {
       case 'current':
-        return <Dashboard key={`current-${Date.now()}`} onSelectWorkout={handleSelectWorkout} />
+        return <Dashboard key={`current-${Date.now()}`} onSelectWorkout={handleSelectWorkout} activeTab="current" />
       case 'mesocycles':
-        return <Dashboard key={`mesocycles-${Date.now()}`} onSelectWorkout={handleSelectWorkout} />
+        return <Dashboard key={`mesocycles-${Date.now()}`} onSelectWorkout={handleSelectWorkout} activeTab="mesocycles" />
       case 'profile':
         return <UserProfile />
       default:

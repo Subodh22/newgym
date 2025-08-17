@@ -16,9 +16,10 @@ type ViewState = 'list' | 'import' | 'create' | 'debug'
 
 interface DashboardProps {
   onSelectWorkout?: (workout: any) => void
+  activeTab?: 'current' | 'mesocycles'
 }
 
-export default function Dashboard({ onSelectWorkout }: DashboardProps = {}) {
+export default function Dashboard({ onSelectWorkout, activeTab = 'current' }: DashboardProps = {}) {
   const { user } = useSupabaseAuth()
   const [mesocycles, setMesocycles] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -247,8 +248,8 @@ export default function Dashboard({ onSelectWorkout }: DashboardProps = {}) {
         )
       })()}
 
-      {/* Action Buttons - Only show when no active mesocycles */}
-      {!mesocycles.some(m => m.is_active) && (
+      {/* Action Buttons - Show in mesocycles tab or when no active mesocycles */}
+      {(activeTab === 'mesocycles' || !mesocycles.some(m => m.is_active)) && (
         <div className="flex justify-center">
           <Button
             onClick={() => setViewState('create')}
@@ -276,25 +277,11 @@ export default function Dashboard({ onSelectWorkout }: DashboardProps = {}) {
 
             return (
               <div key={status} className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-medium capitalize">{status}</h2>
-                    <Badge variant="secondary" className="text-xs">
-                      {filtered.length}
-                    </Badge>
-                  </div>
-                  
-                  {/* Show Create Program button only in planned section */}
-                  {status === 'planned' && (
-                    <Button
-                      onClick={() => setViewState('create')}
-                      size="sm"
-                      className="h-8 px-4"
-                    >
-                      <Zap className="h-3 w-3 mr-1" />
-                      Create Program
-                    </Button>
-                  )}
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-medium capitalize">{status}</h2>
+                  <Badge variant="secondary" className="text-xs">
+                    {filtered.length}
+                  </Badge>
                 </div>
                 
                 <MesocycleList mesocycles={filtered} onUpdate={loadMesocycles} />
