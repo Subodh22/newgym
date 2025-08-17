@@ -115,7 +115,7 @@ export default function AuthPage() {
               {message}
               {message.includes('check your email') && (
                 <div className="mt-2 text-xs text-gray-500">
-                  💡 To disable email confirmation: Go to Supabase Dashboard → Authentication → Settings → Disable "Enable email confirmations"
+                  💡 To disable email confirmation: Go to Supabase Dashboard → Authentication → Settings → Disable &quot;Enable email confirmations&quot;
                 </div>
               )}
             </div>
