@@ -90,7 +90,7 @@ export default function MesocycleCompletion({
           {/* Celebration Message */}
           <div className="text-center pt-4 border-t border-gray-100">
             <p className="text-sm text-gray-500">
-              🎉 You've successfully completed your training mesocycle! 
+              🎉 You&apos;ve successfully completed your training mesocycle! 
               Time to plan your next block or take a well-deserved deload week.
             </p>
           </div>

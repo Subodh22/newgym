@@ -154,7 +154,7 @@ export default function MesocycleDetail({ mesocycle, onClose, onUpdate }: Mesocy
               <Calendar className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">No weeks found</h3>
               <p className="mt-1 text-sm text-gray-500">
-                This mesocycle doesn't have any weeks yet.
+                This mesocycle doesn&apos;t have any weeks yet.
               </p>
             </div>
           )}

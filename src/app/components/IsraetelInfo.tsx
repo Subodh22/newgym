@@ -10,7 +10,7 @@ export function IsraetelInfo() {
       <CardHeader>
         <div className="flex items-center gap-2">
           <Info className="h-5 w-5 text-blue-600" />
-          <CardTitle className="text-blue-900">Mike Israetel's Renaissance Periodization</CardTitle>
+          <CardTitle className="text-blue-900">Mike Israetel&apos;s Renaissance Periodization</CardTitle>
         </div>
       </CardHeader>
       <CardContent className="space-y-4 text-blue-800">

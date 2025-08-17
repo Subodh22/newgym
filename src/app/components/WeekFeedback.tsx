@@ -86,7 +86,7 @@ export function WeekFeedback({ weekNumber, muscleGroups, onSubmit, onSkip, loadi
           Week {weekNumber} Feedback
         </CardTitle>
         <p className="text-sm text-gray-600">
-          Help us optimize your next week's training by providing feedback on how this week felt.
+          Help us optimize your next week&apos;s training by providing feedback on how this week felt.
           This will help adjust volume and intensity for better results.
         </p>
       </CardHeader>
@@ -229,12 +229,12 @@ export function WeekFeedback({ weekNumber, muscleGroups, onSubmit, onSkip, loadi
         </div>
 
         <div className="text-xs text-gray-500 text-center">
-          <p>🧬 <strong>RP Autoregulation:</strong> Based on your feedback, we'll apply:</p>
+          <p>🧬 <strong>RP Autoregulation:</strong> Based on your feedback, we&apos;ll apply:</p>
           <p>• <strong>Volume adjustments</strong> using MEV/MAV/MRV landmarks</p>
           <p>• <strong>RIR progression</strong> (3→2→1→0 RIR across weeks)</p>
           <p>• <strong>Weight increases</strong> of 2.5% (adjusted by difficulty)</p>
           <p>• <strong>Pump & recovery feedback</strong> for optimal periodization</p>
-          <p className="mt-2 font-medium">Following Dr. Mike Israetel's RP methodology</p>
+          <p className="mt-2 font-medium">Following Dr. Mike Israetel&apos;s RP methodology</p>
         </div>
       </CardContent>
     </Card>
