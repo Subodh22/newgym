@@ -226,7 +226,19 @@ export async function POST(request: NextRequest) {
       } else {
         // Progressive overload - increase weight by default (more aggressive for immediate progression)
         const increaseRate = muscleFeedback ? 0.025 : 0.035 // 3.5% for immediate progression, 2.5% for feedback-based
-        const newWeight = workingWeight * (1 + increaseRate)
+        let newWeight = workingWeight * (1 + increaseRate)
+        
+        // If weight is 0 or very low, apply minimum weight progression for immediate progression
+        if (workingWeight === 0 && !muscleFeedback) {
+          // For immediate progression with 0kg weight, start with a reasonable weight
+          newWeight = 5 // Start with 5kg for immediate progression
+          console.log(`🚀 Starting weight for "${exerciseName}": 0kg → ${newWeight}kg (immediate progression)`)
+        } else if (workingWeight < 5 && !muscleFeedback) {
+          // For very low weights, ensure minimum progression
+          newWeight = Math.max(workingWeight + 2.5, 5) // Add at least 2.5kg or start at 5kg
+          console.log(`🚀 Minimum weight progression for "${exerciseName}": ${workingWeight}kg → ${newWeight}kg (immediate progression)`)
+        }
+        
         const progressionType = muscleFeedback ? 'feedback-based' : 'immediate'
         console.log(`📈 Progressive overload: "${exerciseName}" from ${workingWeight}kg to ${Math.round(newWeight * 4) / 4}kg (${progressionType})`)
         return Math.round(newWeight * 4) / 4 // Round to nearest 0.25kg
@@ -374,6 +386,7 @@ export async function POST(request: NextRequest) {
         console.log(`✅ Created workout: ${newWorkout.day_name}`)
 
         // Copy exercises from previous week with progressive overload
+        console.log(`📋 Processing ${prevWorkout.exercises?.length || 0} exercises for ${newWorkout.day_name}`)
         for (const prevExercise of prevWorkout.exercises || []) {
           const { data: newExercise, error: exerciseError } = await supabaseAdmin
             .from('exercises')
@@ -391,6 +404,7 @@ export async function POST(request: NextRequest) {
 
           // Get muscle group for this exercise
           const muscleGroup = getMuscleGroupFromExercise(prevExercise.name)
+          console.log(`🔍 Processing exercise: ${prevExercise.name} (${muscleGroup})`)
           
           // Calculate adjusted sets based on user feedback
           const adjustedSets = calculateAdjustedSets(
