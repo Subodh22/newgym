@@ -64,115 +64,200 @@ const getMuscleGroupFromExercise = (exerciseName: string): string => {
   return 'Other'
 }
 
-// User-driven volume adjustments - ONLY change when user provides specific feedback
+// Mike Israetel RP Volume Progression System
 const calculateAdjustedSets = (muscleGroup: string, previousSetCount: number, feedback: UserFeedback[]) => {
   const landmarks = VOLUME_LANDMARKS[muscleGroup as keyof typeof VOLUME_LANDMARKS]
   const minSets = landmarks?.MEV || 2
   const maxSets = landmarks?.MRV || 25
   
-  // Start with previous week's set count - NO automatic progression
+  // Start with previous week's set count
   let adjustedSets = previousSetCount || 3
 
   const muscleFeedback = feedback.find(f => f.muscleGroup === muscleGroup)
   if (muscleFeedback) {
     let volumeAdjustment = 0
 
-    // Progressive overload by default, unless user says it's too hard or hard
+    // RP Volume Progression based on feedback
     switch (muscleFeedback.difficulty) {
       case 'too_hard':
+        // Performance Rating 4: Reduce volume significantly
+        volumeAdjustment = -2
+        console.log(`📉 RP volume reduction: Removing 2 sets for ${muscleGroup} (too hard)`)
+        break
       case 'hard':
-        volumeAdjustment -= 1 // Remove 1 set if user says it was too hard or hard
-        console.log(`📉 Removing 1 set for ${muscleGroup} (user feedback: ${muscleFeedback.difficulty})`)
+        // Performance Rating 3: Reduce volume slightly
+        volumeAdjustment = -1
+        console.log(`📉 RP volume reduction: Removing 1 set for ${muscleGroup} (hard)`)
+        break
+      case 'moderate':
+        // Performance Rating 2: Standard progression
+        volumeAdjustment = 1
+        console.log(`📈 RP volume progression: Adding 1 set for ${muscleGroup} (moderate)`)
         break
       case 'easy':
-      case 'moderate':
-        // Progressive overload - add 1 set by default
-        volumeAdjustment += 1
-        console.log(`📈 Progressive overload: Adding 1 set for ${muscleGroup} (user feedback: ${muscleFeedback.difficulty})`)
+        // Performance Rating 1: Aggressive progression
+        volumeAdjustment = 2
+        console.log(`📈 RP volume progression: Adding 2 sets for ${muscleGroup} (easy)`)
         break
     }
 
-    // Additional adjustment only for severe soreness (safety)
-    if (muscleFeedback.soreness === 'severe') {
-      volumeAdjustment -= 1 // Safety reduction for severe soreness
-      console.log(`⚠️ Reducing 1 set for ${muscleGroup} due to severe soreness`)
+    // Recovery-based volume adjustments
+    if (muscleFeedback.recovery === 'poor' && muscleFeedback.pumpQuality && muscleFeedback.pumpQuality <= 2) {
+      // Poor pump + poor recovery: Reduce volume
+      volumeAdjustment = Math.min(volumeAdjustment, -1)
+      console.log(`⚠️ RP recovery adjustment: Reducing volume for ${muscleGroup} due to poor recovery/pump`)
+    } else if (muscleFeedback.recovery === 'excellent' && muscleFeedback.pumpQuality && muscleFeedback.pumpQuality >= 4) {
+      // Excellent pump + recovery: Increase volume
+      volumeAdjustment = Math.max(volumeAdjustment, 1)
+      console.log(`🚀 RP recovery adjustment: Increasing volume for ${muscleGroup} due to excellent recovery/pump`)
     }
 
     adjustedSets += volumeAdjustment
   } else {
-    // No feedback = apply default progressive overload for immediate progression
+    // No feedback - apply conservative RP progression
     adjustedSets += 1
-    console.log(`🚀 Default progressive overload: Adding 1 set for ${muscleGroup} (immediate progression)`)
+    console.log(`📈 RP conservative progression: Adding 1 set for ${muscleGroup} (no feedback)`)
   }
 
-  // Ensure we stay within safe limits
+  // Ensure we stay within RP volume landmarks
   return Math.max(minSets, Math.min(maxSets, adjustedSets))
 }
 
-// No baseline weights - user sets their own starting weights
+// Mike Israetel RP Weight Progression System
 const calculateProgressiveWeight = (baseWeight: number, weekNumber: number, feedback: UserFeedback[], muscleGroup: string, exerciseName: string = '') => {
-  // Use exactly what the previous week had - NO assumptions, NO baseline weights
   let workingWeight = baseWeight
-
-  console.log(`🔄 Using previous weight for "${exerciseName}": ${workingWeight}kg (no automatic assumptions)`)
+  console.log(`🔄 Using previous weight for "${exerciseName}": ${workingWeight}kg (RP methodology)`)
 
   const muscleFeedback = feedback.find(f => f.muscleGroup === muscleGroup)
   
-  // Progressive overload by default, unless user says it's too hard or hard
-  if (muscleFeedback && (muscleFeedback.difficulty === 'too_hard' || muscleFeedback.difficulty === 'hard')) {
-    // Reduce weight when user says it was too hard or hard
-    const reductionRate = 0.05 // 5% reduction for safety
-    const newWeight = workingWeight * (1 - reductionRate)
-    console.log(`📉 Reducing weight for "${exerciseName}" from ${workingWeight}kg to ${Math.round(newWeight * 4) / 4}kg (user feedback: ${muscleFeedback.difficulty})`)
-    return Math.round(newWeight * 4) / 4 // Round to nearest 0.25kg
-  } else {
-    // Progressive overload - increase weight by default (more aggressive for immediate progression)
-    const increaseRate = muscleFeedback ? 0.025 : 0.035 // 3.5% for immediate progression, 2.5% for feedback-based
-    const newWeight = workingWeight * (1 + increaseRate)
-    const progressionType = muscleFeedback ? 'feedback-based' : 'immediate'
-    console.log(`📈 Progressive overload: "${exerciseName}" from ${workingWeight}kg to ${Math.round(newWeight * 4) / 4}kg (${progressionType})`)
-    return Math.round(newWeight * 4) / 4 // Round to nearest 0.25kg
+  // Determine progression rate based on muscle group (RP methodology)
+  let progressionRate = 0.025 // Default 2.5%
+  
+  if (exerciseName.toLowerCase().includes('bench') || exerciseName.toLowerCase().includes('squat') || exerciseName.toLowerCase().includes('deadlift')) {
+    progressionRate = 0.05 // 5% for compound movements
+  } else if (['Biceps', 'Triceps', 'Shoulders'].includes(muscleGroup)) {
+    progressionRate = 0.025 // 2.5% for small muscles
+  } else if (['Chest', 'Back', 'Quadriceps', 'Hamstrings'].includes(muscleGroup)) {
+    progressionRate = 0.04 // 4% for large muscles
   }
+
+  // Apply feedback-based adjustments
+  if (muscleFeedback) {
+    switch (muscleFeedback.difficulty) {
+      case 'too_hard':
+        // Performance Rating 4: Reduce weight 10%
+        workingWeight *= 0.90
+        console.log(`📉 RP adjustment: "${exerciseName}" reduced by 10% to ${Math.round(workingWeight * 4) / 4}kg (too hard)`)
+        break
+      case 'hard':
+        // Performance Rating 3: Reduce weight 5%
+        workingWeight *= 0.95
+        console.log(`📉 RP adjustment: "${exerciseName}" reduced by 5% to ${Math.round(workingWeight * 4) / 4}kg (hard)`)
+        break
+      case 'easy':
+        // Performance Rating 1: Increase weight 5%
+        workingWeight *= (1 + progressionRate + 0.025) // Extra 2.5% for easy
+        console.log(`📈 RP adjustment: "${exerciseName}" increased by ${Math.round((progressionRate + 0.025) * 100)}% to ${Math.round(workingWeight * 4) / 4}kg (easy)`)
+        break
+      case 'moderate':
+        // Performance Rating 2: Standard progression
+        workingWeight *= (1 + progressionRate)
+        console.log(`📈 RP progression: "${exerciseName}" increased by ${Math.round(progressionRate * 100)}% to ${Math.round(workingWeight * 4) / 4}kg (moderate)`)
+        break
+    }
+
+    // Recovery-based adjustments
+    if (muscleFeedback.recovery === 'poor' && muscleFeedback.pumpQuality && muscleFeedback.pumpQuality <= 2) {
+      // Poor pump + poor recovery: Reduce intensity
+      workingWeight *= 0.95
+      console.log(`⚠️ RP recovery adjustment: "${exerciseName}" reduced by 5% due to poor recovery/pump`)
+    } else if (muscleFeedback.recovery === 'excellent' && muscleFeedback.pumpQuality && muscleFeedback.pumpQuality >= 4) {
+      // Excellent pump + recovery: Increase intensity
+      workingWeight *= (1 + progressionRate + 0.02)
+      console.log(`🚀 RP recovery adjustment: "${exerciseName}" increased by ${Math.round((progressionRate + 0.02) * 100)}% due to excellent recovery/pump`)
+    }
+  } else {
+    // No feedback - apply standard RP progression
+    workingWeight *= (1 + progressionRate)
+    console.log(`📈 RP standard progression: "${exerciseName}" increased by ${Math.round(progressionRate * 100)}% to ${Math.round(workingWeight * 4) / 4}kg`)
+  }
+
+  // Equipment constraint handling (RP methodology)
+  const weightJump = Math.abs(workingWeight - baseWeight)
+  const jumpPercentage = (weightJump / baseWeight) * 100
+  
+  if (jumpPercentage > 10) {
+    // Weight jump too large - keep same weight, will use rep progression instead
+    console.log(`⚖️ RP equipment constraint: Weight jump ${Math.round(jumpPercentage)}% too large, keeping ${baseWeight}kg for rep progression`)
+    return baseWeight
+  }
+
+  return Math.round(workingWeight * 4) / 4 // Round to nearest 0.25kg
 }
 
-// Professional rep progression system
+// Mike Israetel RP Rep Progression System
 const REP_PROGRESSION = {
-  1: { reps: 6, phase: 'Strength', description: 'Low rep strength focus' },
-  2: { reps: 8, phase: 'Strength-Hypertrophy', description: 'Moderate rep strength building' },
-  3: { reps: 10, phase: 'Hypertrophy', description: 'Hypertrophy focus' },
-  4: { reps: 12, phase: 'Hypertrophy-Endurance', description: 'High rep hypertrophy' },
-  5: { reps: 16, phase: 'Endurance', description: 'Endurance and conditioning' }
+  1: { reps: 8, rir: 3, phase: 'MEV', description: 'Week 1: Building base volume' },
+  2: { reps: 10, rir: 2, phase: 'MAV', description: 'Week 2: Moderate intensity' },
+  3: { reps: 12, rir: 1, phase: 'MAV', description: 'Week 3: High intensity' },
+  4: { reps: 12, rir: 0, phase: 'MRV', description: 'Week 4: Peak intensity' },
+  5: { reps: 8, rir: 3, phase: 'Deload', description: 'Week 5: Active recovery' }
 }
 
 const getTargetRepsForWeek = (weekNumber: number, baseReps: number = 8, feedback: UserFeedback[], muscleGroup: string, exerciseName: string = '') => {
   const muscleFeedback = feedback.find(f => f.muscleGroup === muscleGroup)
   
-  // Get the target rep range for this week based on progression
+  // Get the target rep range for this week based on RP progression
   const weekRepInfo = REP_PROGRESSION[weekNumber as keyof typeof REP_PROGRESSION] || REP_PROGRESSION[2]
   let targetReps = weekRepInfo.reps
   
-  // Adjust based on user feedback
-  if (muscleFeedback && (muscleFeedback.difficulty === 'too_hard' || muscleFeedback.difficulty === 'hard')) {
-    // If too hard, reduce to previous week's rep range or minimum
-    const previousWeekReps = REP_PROGRESSION[(weekNumber - 1) as keyof typeof REP_PROGRESSION]?.reps || 6
-    targetReps = Math.max(6, previousWeekReps)
-    console.log(`📉 Reducing reps for "${exerciseName}" to ${targetReps} (user feedback: ${muscleFeedback.difficulty})`)
-  } else if (muscleFeedback && muscleFeedback.difficulty === 'easy') {
-    // If easy, can progress to next week's rep range
-    const nextWeekReps = REP_PROGRESSION[(weekNumber + 1) as keyof typeof REP_PROGRESSION]?.reps || weekRepInfo.reps
-    targetReps = nextWeekReps
-    console.log(`📈 Progressive overload: "${exerciseName}" reps to ${targetReps} (user feedback: easy)`)
-  } else {
-    // Default progression - more aggressive for immediate progression
-    if (!muscleFeedback) {
-      // No feedback = immediate progression - advance to next week's rep range
-      const nextWeekReps = REP_PROGRESSION[(weekNumber + 1) as keyof typeof REP_PROGRESSION]?.reps || weekRepInfo.reps
-      targetReps = nextWeekReps
-      console.log(`🚀 Immediate progression: "${exerciseName}" reps to ${targetReps} (advancing rep range)`)
-    } else {
-      // Default progression based on week
-      console.log(`📊 Professional rep progression: "${exerciseName}" ${targetReps} reps (${weekRepInfo.phase} phase)`)
+  // RP Rep-Match Load Progression System
+  if (muscleFeedback) {
+    switch (muscleFeedback.difficulty) {
+      case 'too_hard':
+        // Performance Rating 4: Reduce reps by 2, add weight reduction
+        targetReps = Math.max(6, targetReps - 2)
+        console.log(`📉 RP rep adjustment: "${exerciseName}" reduced to ${targetReps} reps (too hard)`)
+        break
+      case 'hard':
+        // Performance Rating 3: Reduce reps by 1, add weight reduction
+        targetReps = Math.max(6, targetReps - 1)
+        console.log(`📉 RP rep adjustment: "${exerciseName}" reduced to ${targetReps} reps (hard)`)
+        break
+      case 'easy':
+        // Performance Rating 1: Increase reps by 1-2
+        targetReps = Math.min(20, targetReps + 2)
+        console.log(`📈 RP rep progression: "${exerciseName}" increased to ${targetReps} reps (easy)`)
+        break
+      case 'moderate':
+        // Performance Rating 2: Standard progression
+        console.log(`📊 RP standard progression: "${exerciseName}" ${targetReps} reps (${weekRepInfo.phase} phase)`)
+        break
     }
+
+    // Recovery-based rep adjustments
+    if (muscleFeedback.recovery === 'poor' && muscleFeedback.pumpQuality && muscleFeedback.pumpQuality <= 2) {
+      // Poor pump + poor recovery: Reduce reps
+      targetReps = Math.max(6, targetReps - 1)
+      console.log(`⚠️ RP recovery adjustment: "${exerciseName}" reduced to ${targetReps} reps due to poor recovery/pump`)
+    } else if (muscleFeedback.recovery === 'excellent' && muscleFeedback.pumpQuality && muscleFeedback.pumpQuality >= 4) {
+      // Excellent pump + recovery: Increase reps
+      targetReps = Math.min(20, targetReps + 1)
+      console.log(`🚀 RP recovery adjustment: "${exerciseName}" increased to ${targetReps} reps due to excellent recovery/pump`)
+    }
+  } else {
+    // No feedback - apply standard RP progression
+    console.log(`📊 RP standard progression: "${exerciseName}" ${targetReps} reps (${weekRepInfo.phase} phase)`)
+  }
+
+  // Exercise-specific rep ranges (RP methodology)
+  const exerciseNameLower = exerciseName.toLowerCase()
+  if (exerciseNameLower.includes('bench') || exerciseNameLower.includes('squat') || exerciseNameLower.includes('deadlift')) {
+    // Compound movements: 6-12 rep range
+    targetReps = Math.max(6, Math.min(12, targetReps))
+  } else if (exerciseNameLower.includes('curl') || exerciseNameLower.includes('lateral') || exerciseNameLower.includes('tricep')) {
+    // Isolation movements: 8-20 rep range
+    targetReps = Math.max(8, Math.min(20, targetReps))
   }
   
   return targetReps

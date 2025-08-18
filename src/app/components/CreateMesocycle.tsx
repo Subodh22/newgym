@@ -187,13 +187,28 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
     const landmarks = VOLUME_LANDMARKS[muscleGroup as keyof typeof VOLUME_LANDMARKS]
     if (!landmarks) return 3
 
-    // Calculate total weekly sets for the muscle group based on Mike Israetel's progression
-    const weeklyProgression = (landmarks.MRV - landmarks.MEV) / 4
-    const totalWeeklySets = Math.max(landmarks.MEV, Math.round(landmarks.MEV + (weeklyProgression * (week - 1))))
+    // RP Methodology: Start at MEV and progress gradually
+    let totalWeeklySets: number
     
-    // Distribute total weekly sets across exercises for this muscle group
-    // Each exercise gets a portion of the total weekly sets
-    const setsPerExercise = Math.max(2, Math.round(totalWeeklySets / totalExercisesForMuscle))
+    if (week === 1) {
+      // Week 1: Start at MEV (Minimum Effective Volume)
+      totalWeeklySets = landmarks.MEV
+    } else if (week === 2) {
+      // Week 2: Slight increase from MEV
+      totalWeeklySets = Math.round(landmarks.MEV + (landmarks.MAV - landmarks.MEV) * 0.25)
+    } else if (week === 3) {
+      // Week 3: Approach MAV
+      totalWeeklySets = Math.round(landmarks.MEV + (landmarks.MAV - landmarks.MEV) * 0.5)
+    } else if (week === 4) {
+      // Week 4: Near MRV
+      totalWeeklySets = Math.round(landmarks.MEV + (landmarks.MAV - landmarks.MEV) * 0.75)
+    } else {
+      // Week 5+: Deload or maintenance
+      totalWeeklySets = Math.round(landmarks.MEV * 0.7) // 70% of MEV for deload
+    }
+    
+    // Distribute sets across exercises (RP methodology: 3-4 sets per exercise is typical)
+    const setsPerExercise = Math.max(3, Math.min(4, Math.round(totalWeeklySets / totalExercisesForMuscle)))
     
     return setsPerExercise
   }
