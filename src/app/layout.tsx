@@ -5,7 +5,7 @@ export const metadata = {
   title: "Astronaut Fitness",
   description: "Your personal fitness companion - train like an astronaut",
   manifest: "/manifest.json",
-  themeColor: "#8B5CF6",
+  themeColor: "#FFFFFF",
   viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
   appleWebApp: {
     capable: true,
@@ -42,15 +42,15 @@ export default function RootLayout({
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-config" content="/icons/browserconfig.xml" />
-        <meta name="msapplication-TileColor" content="#8B5CF6" />
+        <meta name="msapplication-TileColor" content="#FFFFFF" />
         <meta name="msapplication-tap-highlight" content="no" />
-        <meta name="theme-color" content="#8B5CF6" />
+        <meta name="theme-color" content="#FFFFFF" />
 
         <link rel="apple-touch-icon" href="/icons/icon-192x192.svg" />
         <link rel="icon" type="image/svg+xml" sizes="32x32" href="/icons/icon-32x32.svg" />
         <link rel="icon" type="image/svg+xml" sizes="16x16" href="/icons/icon-16x16.svg" />
         <link rel="manifest" href="/manifest.json" />
-        <link rel="mask-icon" href="/icons/safari-pinned-tab.svg" color="#8B5CF6" />
+        <link rel="mask-icon" href="/icons/safari-pinned-tab.svg" color="#FFFFFF" />
         <link rel="shortcut icon" href="/favicon.ico" />
 
         <meta name="twitter:card" content="summary" />
