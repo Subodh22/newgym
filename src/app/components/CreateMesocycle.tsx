@@ -33,41 +33,66 @@ const VOLUME_LANDMARKS = {
 // Exercise database organized by muscle group
 const EXERCISE_DATABASE = {
   'Chest': [
-    'Barbell Bench Press', 'Incline Barbell Press', 'Dumbbell Bench Press', 
-    'Incline Dumbbell Press', 'Dips', 'Cable Flyes', 'Pec Deck'
+    'Barbell Bench Press', 'Incline Barbell Press', 'Decline Barbell Bench',
+    'Dumbbell Bench Press', 'Incline Dumbbell Press', 'Decline Dumbbell Bench',
+    'Weighted Dips', 'Dips', 'Push-ups', 'Close-Grip Bench Press',
+    'Cable Flyes', 'Low-to-High Cable Fly', 'High-to-Low Cable Fly', 'Pec Deck',
+    'Machine Chest Press', 'Smith Machine Bench Press'
   ],
   'Back': [
-    'Deadlift', 'Pull-ups', 'Lat Pulldown', 'Barbell Rows', 'T-Bar Rows',
-    'Cable Rows', 'Face Pulls', 'Shrugs'
+    'Deadlift', 'Rack Pulls', 'Pull-ups', 'Chin-ups', 'Lat Pulldown',
+    'One-Arm Dumbbell Row', 'Barbell Rows', 'Pendlay Row', 'T-Bar Rows',
+    'Chest-Supported Row', 'Machine Row', 'Cable Rows', 'Straight-Arm Pulldown',
+    'Face Pulls', 'Shrugs'
   ],
   'Shoulders': [
-    'Overhead Press', 'Dumbbell Shoulder Press', 'Lateral Raises',
-    'Rear Delt Flyes', 'Upright Rows', 'Arnold Press'
+    'Overhead Press', 'Seated Barbell Press', 'Dumbbell Shoulder Press',
+    'Arnold Press', 'Lateral Raises', 'Cable Lateral Raises', 'Machine Lateral Raise',
+    'Rear Delt Flyes', 'Reverse Pec Deck', 'Face Pulls', 'Upright Rows'
   ],
   'Biceps': [
-    'Barbell Curls', 'Dumbbell Curls', 'Hammer Curls', 'Cable Curls',
-    'Preacher Curls', 'Concentration Curls'
+    'Barbell Curls', 'EZ-Bar Curls', 'Dumbbell Curls', 'Alternating DB Curls',
+    'Incline Dumbbell Curls', 'Hammer Curls', 'Cable Curls', 'Rope Cable Curls',
+    'Preacher Curls', 'Spider Curls', 'Concentration Curls'
   ],
   'Triceps': [
-    'Close Grip Bench Press', 'Tricep Dips', 'Overhead Tricep Extension',
-    'Cable Tricep Pushdown', 'Diamond Push-ups'
+    'Close Grip Bench Press', 'Tricep Dips', 'Weighted Dips',
+    'Overhead Tricep Extension', 'Dumbbell Overhead Extension',
+    'Skull Crushers (EZ-Bar)', 'Cable Tricep Pushdown', 'Rope Pushdown',
+    'Diamond Push-ups', 'Kickbacks'
   ],
   'Quadriceps': [
-    'Back Squat', 'Front Squat', 'Leg Press', 'Bulgarian Split Squats',
-    'Leg Extensions', 'Lunges'
+    'Back Squat', 'Front Squat', 'High-Bar Squat', 'Hack Squat', 'Leg Press',
+    'Bulgarian Split Squats', 'Leg Extensions', 'Lunges', 'Walking Lunges',
+    'Step-ups', 'Sissy Squats'
   ],
   'Hamstrings': [
-    'Romanian Deadlift', 'Leg Curls', 'Good Mornings', 'Single Leg RDL',
-    'Glute Ham Raises'
+    'Romanian Deadlift', 'Stiff-Leg Deadlift', 'Good Mornings', 'Single Leg RDL',
+    'Lying Leg Curls', 'Seated Leg Curls', 'Nordic Curl', 'Glute Ham Raises'
   ],
   'Glutes': [
-    'Hip Thrusts', 'Bulgarian Split Squats', 'Romanian Deadlift',
-    'Glute Bridges', 'Cossack Squats'
+    'Hip Thrusts', 'Barbell Hip Thrusts', 'Hip Thrust Machine',
+    'Bulgarian Split Squats', 'Romanian Deadlift', 'Glute Bridges',
+    'Cable Kickbacks', 'Step-ups', 'Sumo Squat', 'Cossack Squats'
   ],
   'Calves': [
-    'Standing Calf Raises', 'Seated Calf Raises', 'Calf Press',
+    'Standing Calf Raises', 'Seated Calf Raises', 'Smith Machine Calf Raises',
+    'Leg Press Calf Press', 'Single-Leg Calf Raises', 'Donkey Calf Raises',
     'Walking Calf Raises'
   ]
+}
+
+// Curated recommendations (best starting options) per muscle group
+const RECOMMENDED_EXERCISES: Record<string, string[]> = {
+  Chest: ['Barbell Bench Press', 'Incline Dumbbell Press'],
+  Back: ['Pull-ups', 'Barbell Rows'],
+  Shoulders: ['Overhead Press', 'Lateral Raises'],
+  Biceps: ['EZ-Bar Curls'],
+  Triceps: ['Skull Crushers (EZ-Bar)', 'Cable Tricep Pushdown'],
+  Quadriceps: ['Back Squat', 'Leg Press'],
+  Hamstrings: ['Romanian Deadlift', 'Lying Leg Curls'],
+  Glutes: ['Hip Thrusts', 'Romanian Deadlift'],
+  Calves: ['Standing Calf Raises']
 }
 
 const TRAINING_SPLITS = {
@@ -89,6 +114,7 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
   const { user } = useSupabaseAuth()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [loadingMessage, setLoadingMessage] = useState('Preparing your program...')
   
   // Mesocycle basic info
   const [mesocycleName, setMesocycleName] = useState('')
@@ -122,6 +148,29 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
         }
       }
     }))
+  }
+
+  // Auto-fill helpers
+  const autoFillMuscleGroup = (workoutType: string, muscleGroup: string) => {
+    const recs = RECOMMENDED_EXERCISES[muscleGroup] || []
+    recs.forEach((ex) => {
+      // Only add if present in our database and not already selected
+      const isInDatabase = (EXERCISE_DATABASE as any)[muscleGroup]?.includes(ex)
+      const alreadySelected = !!(workoutPlans[workoutType] && (workoutPlans[workoutType] as any)[ex])
+      if (isInDatabase && !alreadySelected) {
+        addExerciseToWorkout(workoutType, ex, muscleGroup)
+      }
+    })
+  }
+
+  const autoFillWorkoutType = (workoutType: string) => {
+    const muscleGroups = (TRAINING_SPLITS as any)[selectedSplit][workoutType]
+    muscleGroups.forEach((mg: string) => autoFillMuscleGroup(workoutType, mg))
+  }
+
+  const autoFillEntirePlan = () => {
+    const workoutTypes = Object.keys(TRAINING_SPLITS[selectedSplit as keyof typeof TRAINING_SPLITS])
+    workoutTypes.forEach((wt) => autoFillWorkoutType(wt))
   }
 
   const removeExerciseFromWorkout = (workoutType: string, exercise: string) => {
@@ -189,6 +238,7 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
     if (!user) return
 
     setLoading(true)
+    setLoadingMessage('Creating your mesocycle...')
     const startTime = Date.now()
     
     try {
@@ -216,13 +266,29 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
       
       console.log('🚀 Starting optimized mesocycle creation...')
       console.log('⏱️ Creating mesocycle...')
+      setLoadingMessage('Creating mesocycle...')
       
-      // Create mesocycle
+      // Determine if we should auto-activate this mesocycle
+      let shouldActivate = false
+      try {
+        const { data: existingActive } = await supabase
+          .from('mesocycles')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .limit(1)
+        shouldActivate = !existingActive || existingActive.length === 0
+      } catch (_) {
+        // If the check fails, fall back to not activating to be safe
+        shouldActivate = false
+      }
+
+      // Create mesocycle (auto-activate if none active)
       const { data: mesocycle, error: mesocycleError } = await createMesocycle({
         user_id: user.id,
         name: mesocycleName,
         number_of_weeks: weeks,
-        is_active: false
+        is_active: shouldActivate
       })
 
       if (mesocycleError || !mesocycle) {
@@ -231,6 +297,7 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
 
       console.log('✅ Mesocycle created in', Date.now() - startTime, 'ms')
       console.log('⏱️ Creating Week 1 only...')
+      setLoadingMessage('Creating Week 1...')
 
       // Create ONLY Week 1 initially (much faster)
       const { data: week, error: weekError } = await createWeek({
@@ -247,6 +314,7 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
       const workoutTypes = Object.keys(TRAINING_SPLITS[selectedSplit as keyof typeof TRAINING_SPLITS])
       const workoutsPerWeek = Math.ceil(trainingDays / workoutTypes.length)
 
+      setLoadingMessage('Generating workouts...')
       for (let day = 1; day <= trainingDays; day++) {
         const workoutTypeIndex = (day - 1) % workoutTypes.length
         const workoutType = workoutTypes[workoutTypeIndex]
@@ -264,6 +332,7 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
         const exercisesForWorkout = workoutPlans[workoutType] || {}
         let exerciseOrder = 1
 
+        setLoadingMessage(`Adding exercises and sets for Day ${day}...`)
         for (const [exerciseName, exerciseData] of Object.entries(exercisesForWorkout)) {
           const { data: exercise, error: exerciseError } = await createExercise({
             workout_id: workout.id,
@@ -394,6 +463,12 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
           <h3 className="text-lg font-medium">Exercise Selection</h3>
         </div>
 
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={autoFillEntirePlan}>
+            Auto-Fill Best Plan
+          </Button>
+        </div>
+
         {workoutTypes.map(workoutType => {
           const muscleGroups = (TRAINING_SPLITS as any)[selectedSplit][workoutType]
           
@@ -410,6 +485,11 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
                       <Badge variant="outline" className="text-xs">
                         MEV: {VOLUME_LANDMARKS[muscleGroup as keyof typeof VOLUME_LANDMARKS]?.MEV} sets/week
                       </Badge>
+                    </div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Button variant="secondary" size="sm" onClick={() => autoFillMuscleGroup(workoutType, muscleGroup)}>
+                        Auto-Fill Best {muscleGroup}
+                      </Button>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-2 mb-3">
@@ -537,7 +617,16 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
   )
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6 pb-20 relative">
+      {loading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm">
+          <div className="bg-white border rounded-xl shadow-lg p-6 w-72 text-center space-y-3 animate-in fade-in zoom-in-95">
+            <div className="w-10 h-10 mx-auto border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm text-gray-700">{loadingMessage}</p>
+            <p className="text-xs text-gray-400">Loading up your plan...</p>
+          </div>
+        </div>
+      )}
       <div className="flex items-center gap-2">
         <Button variant="ghost" onClick={onBack}>
           <ArrowLeft className="h-4 w-4" />

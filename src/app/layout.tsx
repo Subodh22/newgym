@@ -2,7 +2,7 @@ import "./globals.css";
 import { SupabaseAuthProvider } from "@/lib/contexts/SupabaseAuthContext";
 
 export const metadata = {
-  title: "Astronaut Fitness",
+  title: "BaliyoBan",
   description: "Your personal fitness companion - train like an animal",
   manifest: "/manifest.json",
   themeColor: "#FFFFFF",
@@ -46,7 +46,7 @@ export default function RootLayout({
         <meta name="msapplication-tap-highlight" content="no" />
         <meta name="theme-color" content="#FFFFFF" />
 
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.svg" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon-180x180.png" />
         <link rel="icon" type="image/svg+xml" sizes="32x32" href="/icons/icon-32x32.svg" />
         <link rel="icon" type="image/svg+xml" sizes="16x16" href="/icons/icon-16x16.svg" />
         <link rel="manifest" href="/manifest.json" />
