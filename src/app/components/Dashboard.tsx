@@ -282,10 +282,10 @@ export default function Dashboard({ onSelectWorkout, activeTab = 'current' }: Da
         <div className="flex justify-center">
           <Button
             onClick={() => setViewState('create')}
-            className="h-16 px-8 flex-col gap-1"
+            className="group h-12 px-6 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 hover:shadow-xl active:scale-95 flex items-center gap-2"
           >
-            <Zap className="h-5 w-5" />
-            <span className="text-xs">Create Program</span>
+            <Zap className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
+            <span className="text-sm font-medium tracking-wide">Create Program</span>
           </Button>
         </div>
       )}
@@ -328,9 +328,12 @@ export default function Dashboard({ onSelectWorkout, activeTab = 'current' }: Da
                 Create your first mesocycle to get started with structured training
               </p>
               <div className="flex justify-center">
-                <Button onClick={() => setViewState('create')}>
-                  <Zap className="h-4 w-4 mr-2" />
-                  Create Program
+                <Button
+                  onClick={() => setViewState('create')}
+                  className="group h-10 px-5 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 hover:shadow-lg active:scale-95 inline-flex items-center"
+                >
+                  <Zap className="h-4 w-4 mr-2 transition-transform duration-200 group-hover:scale-110" />
+                  <span className="text-sm font-medium">Create Program</span>
                 </Button>
               </div>
             </CardContent>

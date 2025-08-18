@@ -26,6 +26,17 @@ body {
     rgb(var(--background-start-rgb));
 }
 
+/* Prevent iOS Safari from zooming inputs on focus (requires >=16px font-size) */
+@layer base {
+  @supports (-webkit-touch-callout: none) {
+    input,
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+  }
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
