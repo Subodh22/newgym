@@ -1,6 +1,6 @@
-'use client'
+ 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
@@ -41,6 +41,60 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
   const [localSetValues, setLocalSetValues] = useState<{[key: number]: {weight?: number, reps?: number}}>({})
   const [showFeedback, setShowFeedback] = useState(false)
   const [feedbackLoading, setFeedbackLoading] = useState(false)
+  const [showRestTimer, setShowRestTimer] = useState(false)
+  const [restDurationSeconds, setRestDurationSeconds] = useState<number>(90)
+  const [restRemainingSeconds, setRestRemainingSeconds] = useState<number>(0)
+  const restIntervalIdRef = useRef<number | null>(null)
+  const [isRestPaused, setIsRestPaused] = useState(false)
+  const restPausedRef = useRef(false)
+
+  useEffect(() => {
+    restPausedRef.current = isRestPaused
+  }, [isRestPaused])
+
+  useEffect(() => {
+    return () => {
+      if (restIntervalIdRef.current) {
+        clearInterval(restIntervalIdRef.current)
+      }
+    }
+  }, [])
+
+  const startRestTimer = (seconds: number = restDurationSeconds) => {
+    if (restIntervalIdRef.current) clearInterval(restIntervalIdRef.current)
+    setRestRemainingSeconds(seconds)
+    setShowRestTimer(true)
+    setIsRestPaused(false)
+    const id = window.setInterval(() => {
+      setRestRemainingSeconds(prev => {
+        if (restPausedRef.current) return prev
+        if (prev <= 1) {
+          clearInterval(id)
+          restIntervalIdRef.current = null
+          setShowRestTimer(false)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    restIntervalIdRef.current = id
+  }
+
+  const addRestTime = (seconds: number) => {
+    setRestRemainingSeconds(prev => prev + seconds)
+  }
+
+  const stopRestTimer = () => {
+    if (restIntervalIdRef.current) clearInterval(restIntervalIdRef.current)
+    restIntervalIdRef.current = null
+    setShowRestTimer(false)
+  }
+
+  const formatTime = (totalSeconds: number) => {
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+  }
 
   const handleSetUpdate = async (setId: number, field: keyof Set, value: number | boolean) => {
     setLoading(true)
@@ -59,6 +113,8 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
         const allCompleted = updatedSets.every(set => set.is_completed)
         if (allCompleted) {
           setShowFeedback(true)
+        } else {
+          startRestTimer()
         }
       }
     } catch (error) {
@@ -314,6 +370,41 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
             onSkip={handleFeedbackSkip}
             loading={feedbackLoading}
           />
+        </div>
+      )}
+
+      {/* Rest Timer - floating widget (non-blocking) */}
+      {showRestTimer && (
+        <div className="fixed bottom-24 right-4 z-50">
+          <div className="bg-white rounded-lg shadow-lg border p-4 w-64 text-center space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Rest Timer</h3>
+              <button onClick={stopRestTimer} className="text-xs text-gray-500 hover:text-gray-700">Dismiss</button>
+            </div>
+            <div className="text-4xl font-mono tracking-widest select-none">{formatTime(restRemainingSeconds)}</div>
+            <div className="flex items-center justify-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setIsRestPaused(p => !p)}>
+                {isRestPaused ? 'Resume' : 'Pause'}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => addRestTime(30)}>+30s</Button>
+              <Button variant="ghost" size="sm" className="text-red-600" onClick={stopRestTimer}>Skip</Button>
+            </div>
+            <div className="flex items-center justify-center gap-2 text-xs text-gray-500">
+              <span>Preset:</span>
+              {[60, 90, 120].map(preset => (
+                <button
+                  key={preset}
+                  onClick={() => {
+                    setRestDurationSeconds(preset)
+                    startRestTimer(preset)
+                  }}
+                  className={`px-2 py-1 rounded border ${restDurationSeconds === preset ? 'bg-blue-50 border-blue-300 text-blue-700' : 'border-gray-200'}`}
+                >
+                  {preset}s
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </Card>
