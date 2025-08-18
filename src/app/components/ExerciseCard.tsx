@@ -217,33 +217,17 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
       </CardHeader>
       
       <CardContent className="space-y-3">
-        <div className="space-y-3">
-          <div className="grid grid-cols-4 gap-4 text-sm font-medium text-gray-500 pb-3 border-b border-gray-200">
-            <span>Sets</span>
-            <span>Reps</span>
+        <div className="space-y-2">
+          <div className="grid grid-cols-4 gap-4 text-sm font-medium text-gray-500 pb-2 border-b border-gray-200">
+            <span>Set</span>
             <span>Weight</span>
+            <span>Reps</span>
             <span>Status</span>
           </div>
           
           {sortedSets.map((set) => (
             <div key={set.id} className="grid grid-cols-4 gap-4 items-center">
               <span className="text-sm font-medium">{set.set_number}</span>
-              
-              <div className="flex items-center">
-                <Input
-                  type="number"
-                  value={getDisplayValue(set, 'reps')}
-                  onChange={(e) => handleLocalUpdate(set.id, 'reps', parseInt(e.target.value) || 0)}
-                  onBlur={() => saveSetValue(set.id, 'reps')}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      saveSetValue(set.id, 'reps')
-                      e.currentTarget.blur()
-                    }
-                  }}
-                  className="h-8 text-center w-16 border-dashed border-gray-300 hover:border-blue-400 focus:border-blue-500"
-                />
-              </div>
               
               <div className="flex items-center">
                 <Input
@@ -255,6 +239,22 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       saveSetValue(set.id, 'weight')
+                      e.currentTarget.blur()
+                    }
+                  }}
+                  className="h-8 text-center w-20 border-dashed border-gray-300 hover:border-blue-400 focus:border-blue-500"
+                />
+              </div>
+              
+              <div className="flex items-center">
+                <Input
+                  type="number"
+                  value={getDisplayValue(set, 'reps')}
+                  onChange={(e) => handleLocalUpdate(set.id, 'reps', parseInt(e.target.value) || 0)}
+                  onBlur={() => saveSetValue(set.id, 'reps')}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      saveSetValue(set.id, 'reps')
                       e.currentTarget.blur()
                     }
                   }}

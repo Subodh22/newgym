@@ -247,24 +247,24 @@ export async function POST(request: NextRequest) {
             .select(`
               *,
               workouts (
+              *,
+              exercises (
                 *,
-                exercises (
-                  *,
-                  sets (*)
+                sets (*)
                 )
               )
             `)
             .eq('mesocycle_id', mesocycleId)
             .eq('week_number', weekNumber - 1)
             .single()
-
+          
           if (prevWeekError || !previousWeek) {
             console.error('❌ Could not find previous week to copy from')
             return NextResponse.json({
               error: `Could not find previous week to copy Day ${updateSpecificDay} from`
             }, { status: 500 })
           }
-
+          
           // Find the specific day in the previous week
           const prevWorkout = previousWeek.workouts?.find((w: any) => {
             const dayMatch = w.day_name?.match(/Day (\d+)/)
@@ -371,59 +371,59 @@ export async function POST(request: NextRequest) {
             console.log(`🔄 Updating workout: ${existingWorkout.day_name}`)
             
             for (const exercise of existingWorkout.exercises) {
-              const muscleGroup = getMuscleGroupFromExercise(exercise.name)
-              const previousSetCount = exercise.sets?.length || 3
+            const muscleGroup = getMuscleGroupFromExercise(exercise.name)
+            const previousSetCount = exercise.sets?.length || 3
               const baseWeight = exercise.sets?.[0]?.weight || 0
-              
-              // Apply progressive overload
-              const adjustedSets = calculateAdjustedSets(muscleGroup, previousSetCount, userFeedback || [])
-              const progressiveWeight = calculateProgressiveWeight(baseWeight, weekNumber, userFeedback || [], muscleGroup, exercise.name)
-              const targetReps = getTargetRepsForWeek(weekNumber, 8, userFeedback || [], muscleGroup, exercise.name)
-              
-              console.log(`📈 Updating ${exercise.name}: ${previousSetCount} → ${adjustedSets} sets, ${baseWeight}kg → ${progressiveWeight}kg`)
-              
-              // Update exercise with new progressive overload values
-              const { error: exerciseUpdateError } = await supabaseAdmin
-                .from('exercises')
-                .update({
+            
+            // Apply progressive overload
+            const adjustedSets = calculateAdjustedSets(muscleGroup, previousSetCount, userFeedback || [])
+            const progressiveWeight = calculateProgressiveWeight(baseWeight, weekNumber, userFeedback || [], muscleGroup, exercise.name)
+            const targetReps = getTargetRepsForWeek(weekNumber, 8, userFeedback || [], muscleGroup, exercise.name)
+            
+            console.log(`📈 Updating ${exercise.name}: ${previousSetCount} → ${adjustedSets} sets, ${baseWeight}kg → ${progressiveWeight}kg`)
+            
+            // Update exercise with new progressive overload values
+            const { error: exerciseUpdateError } = await supabaseAdmin
+              .from('exercises')
+              .update({
                   // weight: progressiveWeight // Removed - weight is stored in sets table
-                })
-                .eq('id', exercise.id)
+              })
+              .eq('id', exercise.id)
 
-              if (exerciseUpdateError) {
-                console.error(`❌ Failed to update exercise ${exercise.name}:`, exerciseUpdateError)
-              }
+            if (exerciseUpdateError) {
+              console.error(`❌ Failed to update exercise ${exercise.name}:`, exerciseUpdateError)
+            }
 
-              // Update sets with new rep targets
-              if (exercise.sets && exercise.sets.length > 0) {
-                for (const set of exercise.sets) {
-                  const { error: setUpdateError } = await supabaseAdmin
-                    .from('sets')
-                    .update({
-                      reps: targetReps
-                    })
-                    .eq('id', set.id)
+            // Update sets with new rep targets
+            if (exercise.sets && exercise.sets.length > 0) {
+              for (const set of exercise.sets) {
+                const { error: setUpdateError } = await supabaseAdmin
+                  .from('sets')
+                  .update({
+                    reps: targetReps
+                  })
+                  .eq('id', set.id)
 
-                  if (setUpdateError) {
-                    console.error(`❌ Failed to update set for ${exercise.name}:`, setUpdateError)
-                  }
+                if (setUpdateError) {
+                  console.error(`❌ Failed to update set for ${exercise.name}:`, setUpdateError)
                 }
               }
             }
           }
+        }
 
-          console.log(`✅ Day ${updateSpecificDay} in Week ${weekNumber} updated with progressive overload!`)
-          return NextResponse.json({
-            success: true,
-            message: `Day ${updateSpecificDay} in Week ${weekNumber} updated with progressive overload`,
+        console.log(`✅ Day ${updateSpecificDay} in Week ${weekNumber} updated with progressive overload!`)
+        return NextResponse.json({
+          success: true,
+          message: `Day ${updateSpecificDay} in Week ${weekNumber} updated with progressive overload`,
             updatedWorkout: existingWorkout.day_name,
-            details: {
-              dayNumber: updateSpecificDay,
-              weekNumber: weekNumber,
+          details: {
+            dayNumber: updateSpecificDay,
+            weekNumber: weekNumber,
               workoutName: existingWorkout.day_name,
               exercisesUpdated: existingWorkout.exercises?.length || 0
-            }
-          }, { status: 200 })
+          }
+        }, { status: 200 })
         }
       } else if (updateRemainingWorkouts) {
         console.log(`🔄 Updating remaining workouts in Week ${weekNumber} with progressive overload`)
