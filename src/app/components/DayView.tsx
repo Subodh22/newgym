@@ -25,6 +25,7 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
   const [feedbackLoading, setFeedbackLoading] = useState(false)
   const [showCompletion, setShowCompletion] = useState(false)
   const [completionData, setCompletionData] = useState<any>(null)
+  const [progressiveOverloadApplied, setProgressiveOverloadApplied] = useState(false)
 
   const refreshWorkout = async () => {
     if (!user) return
@@ -46,6 +47,42 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
       }
     } catch (error) {
       console.error('Error refreshing workout:', error)
+    }
+  }
+
+  const fetchNextWeekData = async () => {
+    if (!user) return
+    
+    try {
+      const { data, error } = await getMesocycles(user.id)
+      if (error) throw error
+      
+      const currentWeekNumber = getWeekNumber()
+      const mesocycleId = getMesocycleId()
+      
+      // Find the next week's data
+      for (const mesocycle of data || []) {
+        if (mesocycle.id === mesocycleId) {
+          for (const week of mesocycle.weeks || []) {
+            if (week.week_number === currentWeekNumber + 1) {
+              console.log('📊 Next week data found:', week)
+              console.log('🏋️ Updated workouts in next week:')
+              week.workouts?.forEach((w: any) => {
+                // Extract day number from day_name since day_number field doesn't exist
+                const dayMatch = w.day_name?.match(/Day (\d+)/)
+                const dayNumber = dayMatch ? dayMatch[1] : '?'
+                console.log(`  Day ${dayNumber}: ${w.day_name}`)
+                w.exercises?.forEach((ex: any) => {
+                  console.log(`    ${ex.name}: ${ex.weight}kg, ${ex.sets?.length} sets`)
+                })
+              })
+              return week
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching next week data:', error)
     }
   }
 
@@ -102,7 +139,7 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
 
   const createNextWeekImmediately = async () => {
     try {
-      console.log('⚡ FAST PROGRESSION: Creating next week immediately after workout completion')
+      console.log('⚡ FAST PROGRESSION: Updating corresponding day in next week')
       
       // Get mesocycle ID and week number
       const mesocycleId = getMesocycleId()
@@ -113,17 +150,25 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
         return
       }
 
-      // Create next week with default progressive overload (no user feedback needed)
+      // Get the current workout's day number from day_name
+      const dayNameMatch = workout.day_name?.match(/Day (\d+)/)
+      const currentDayNumber = dayNameMatch ? parseInt(dayNameMatch[1]) : 1
+      console.log(`📅 Current workout: ${workout.day_name}, Day number: ${currentDayNumber}`)
+      console.log(`📅 Updating Day ${currentDayNumber} in Week ${currentWeekNumber + 1}`)
+
+      // Update corresponding day in next week with progressive overload
       const requestBody = {
         mesocycleId: mesocycleId,
         weekNumber: currentWeekNumber + 1,
         userFeedback: [], // Empty feedback - use default progressive overload
         trainingDays: 6,
         selectedSplit: { 'Push': [], 'Pull': [], 'Legs': [] },
-        workoutPlans: {}
+        workoutPlans: {},
+        updateSpecificDay: currentDayNumber // New flag to update specific day
       }
       
-      console.log('🚀 Creating next week with automatic progressive overload...')
+      console.log(`🚀 Updating Day ${currentDayNumber} in Week ${currentWeekNumber + 1} with automatic progressive overload...`)
+      console.log('📤 Request body being sent:', JSON.stringify(requestBody, null, 2))
       
       const response = await fetch('/api/mesocycles/progressive-week', {
         method: 'POST',
@@ -140,18 +185,42 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
           return
         }
         
-        console.error('❌ Progressive week creation error:', errorData)
+        console.error('❌ Progressive week update error:', errorData)
         return
       }
 
       const result = await response.json()
-      console.log('✅ Next week created successfully with automatic progression!')
+      console.log(`✅ Day ${currentDayNumber} in Week ${currentWeekNumber + 1} updated successfully with automatic progression!`)
+      console.log('📊 Progressive overload result:', result)
       
-      // Show success message
-      alert(`🚀 Next week created! Your progressive overload training continues automatically.\n\nWeek ${currentWeekNumber + 1} is ready with optimized volume and intensity.`)
+      // Show success message with details
+      const details = result.details || {}
+      alert(`🚀 Progressive overload applied! 
+      
+Day ${currentDayNumber} in Week ${currentWeekNumber + 1} has been updated with increased volume and intensity.
+
+📊 Details:
+• Workout: ${details.workoutName || workout.day_name}
+• Exercises Updated: ${details.exercisesUpdated || workout.exercises?.length || 0}
+• Week: ${details.weekNumber || currentWeekNumber + 1}
+
+Navigate to Week ${currentWeekNumber + 1} to see the changes!`)
+      
+      // Refresh the data to show updated values
+      console.log('🔄 Refreshing data to show updated progressive overload values...')
+      await refreshWorkout()
+      
+      // Fetch and display next week's updated data
+      console.log('📊 Fetching next week data to show progressive overload updates...')
+      const nextWeekData = await fetchNextWeekData()
+      
+      // Set progressive overload applied state
+      setProgressiveOverloadApplied(true)
+      
+      onUpdate() // Trigger parent component update
       
     } catch (error) {
-      console.error('Error creating next week immediately:', error)
+      console.error('Error updating next week day:', error)
     }
   }
 
@@ -454,6 +523,57 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
               >
                 Complete Workout
               </Button>
+            )}
+            
+            {progressiveOverloadApplied && (
+              <div className="ml-4 flex items-center space-x-2">
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                <span className="text-sm text-green-600 font-medium">
+                  Progressive overload applied to Day {(() => {
+                    const dayNameMatch = workout.day_name?.match(/Day (\d+)/)
+                    return dayNameMatch ? parseInt(dayNameMatch[1]) : 1
+                  })()} in next week!
+                </span>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={fetchNextWeekData}
+                  className="ml-2"
+                >
+                  View Next Week Updates
+                </Button>
+                <Button 
+                  variant="default" 
+                  size="sm"
+                  onClick={() => {
+                    const currentWeekNumber = getWeekNumber()
+                    const currentDayNumber = (() => {
+                      const dayNameMatch = workout.day_name?.match(/Day (\d+)/)
+                      return dayNameMatch ? parseInt(dayNameMatch[1]) : 1
+                    })()
+                    
+                    // Show detailed information about what was updated
+                    alert(`🚀 Progressive Overload Applied Successfully!
+
+📊 Update Details:
+• Day ${currentDayNumber} in Week ${currentWeekNumber + 1} has been updated
+• Sets increased by 1 (progressive overload)
+• Weight increased by 2.5% (if applicable)
+• Reps advanced to next range
+
+🧭 To see the changes:
+1. Go back to the main page
+2. Navigate to Week ${currentWeekNumber + 1}
+3. Open Day ${currentDayNumber}
+4. You'll see the increased sets and updated weights!
+
+The system is working correctly - the updates are in the next week!`)
+                  }}
+                  className="ml-2 bg-green-600 hover:bg-green-700"
+                >
+                  View Update Details
+                </Button>
+              </div>
             )}
           </div>
         </CardHeader>

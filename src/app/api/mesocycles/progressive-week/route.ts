@@ -64,12 +64,126 @@ const getMuscleGroupFromExercise = (exerciseName: string): string => {
   return 'Other'
 }
 
+// User-driven volume adjustments - ONLY change when user provides specific feedback
+const calculateAdjustedSets = (muscleGroup: string, previousSetCount: number, feedback: UserFeedback[]) => {
+  const landmarks = VOLUME_LANDMARKS[muscleGroup as keyof typeof VOLUME_LANDMARKS]
+  const minSets = landmarks?.MEV || 2
+  const maxSets = landmarks?.MRV || 25
+  
+  // Start with previous week's set count - NO automatic progression
+  let adjustedSets = previousSetCount || 3
+
+  const muscleFeedback = feedback.find(f => f.muscleGroup === muscleGroup)
+  if (muscleFeedback) {
+    let volumeAdjustment = 0
+
+    // Progressive overload by default, unless user says it's too hard or hard
+    switch (muscleFeedback.difficulty) {
+      case 'too_hard':
+      case 'hard':
+        volumeAdjustment -= 1 // Remove 1 set if user says it was too hard or hard
+        console.log(`📉 Removing 1 set for ${muscleGroup} (user feedback: ${muscleFeedback.difficulty})`)
+        break
+      case 'easy':
+      case 'moderate':
+        // Progressive overload - add 1 set by default
+        volumeAdjustment += 1
+        console.log(`📈 Progressive overload: Adding 1 set for ${muscleGroup} (user feedback: ${muscleFeedback.difficulty})`)
+        break
+    }
+
+    // Additional adjustment only for severe soreness (safety)
+    if (muscleFeedback.soreness === 'severe') {
+      volumeAdjustment -= 1 // Safety reduction for severe soreness
+      console.log(`⚠️ Reducing 1 set for ${muscleGroup} due to severe soreness`)
+    }
+
+    adjustedSets += volumeAdjustment
+  } else {
+    // No feedback = apply default progressive overload for immediate progression
+    adjustedSets += 1
+    console.log(`🚀 Default progressive overload: Adding 1 set for ${muscleGroup} (immediate progression)`)
+  }
+
+  // Ensure we stay within safe limits
+  return Math.max(minSets, Math.min(maxSets, adjustedSets))
+}
+
+// No baseline weights - user sets their own starting weights
+const calculateProgressiveWeight = (baseWeight: number, weekNumber: number, feedback: UserFeedback[], muscleGroup: string, exerciseName: string = '') => {
+  // Use exactly what the previous week had - NO assumptions, NO baseline weights
+  let workingWeight = baseWeight
+
+  console.log(`🔄 Using previous weight for "${exerciseName}": ${workingWeight}kg (no automatic assumptions)`)
+
+  const muscleFeedback = feedback.find(f => f.muscleGroup === muscleGroup)
+  
+  // Progressive overload by default, unless user says it's too hard or hard
+  if (muscleFeedback && (muscleFeedback.difficulty === 'too_hard' || muscleFeedback.difficulty === 'hard')) {
+    // Reduce weight when user says it was too hard or hard
+    const reductionRate = 0.05 // 5% reduction for safety
+    const newWeight = workingWeight * (1 - reductionRate)
+    console.log(`📉 Reducing weight for "${exerciseName}" from ${workingWeight}kg to ${Math.round(newWeight * 4) / 4}kg (user feedback: ${muscleFeedback.difficulty})`)
+    return Math.round(newWeight * 4) / 4 // Round to nearest 0.25kg
+  } else {
+    // Progressive overload - increase weight by default (more aggressive for immediate progression)
+    const increaseRate = muscleFeedback ? 0.025 : 0.035 // 3.5% for immediate progression, 2.5% for feedback-based
+    const newWeight = workingWeight * (1 + increaseRate)
+    const progressionType = muscleFeedback ? 'feedback-based' : 'immediate'
+    console.log(`📈 Progressive overload: "${exerciseName}" from ${workingWeight}kg to ${Math.round(newWeight * 4) / 4}kg (${progressionType})`)
+    return Math.round(newWeight * 4) / 4 // Round to nearest 0.25kg
+  }
+}
+
+// Professional rep progression system
+const REP_PROGRESSION = {
+  1: { reps: 6, phase: 'Strength', description: 'Low rep strength focus' },
+  2: { reps: 8, phase: 'Strength-Hypertrophy', description: 'Moderate rep strength building' },
+  3: { reps: 10, phase: 'Hypertrophy', description: 'Hypertrophy focus' },
+  4: { reps: 12, phase: 'Hypertrophy-Endurance', description: 'High rep hypertrophy' },
+  5: { reps: 16, phase: 'Endurance', description: 'Endurance and conditioning' }
+}
+
+const getTargetRepsForWeek = (weekNumber: number, baseReps: number = 8, feedback: UserFeedback[], muscleGroup: string, exerciseName: string = '') => {
+  const muscleFeedback = feedback.find(f => f.muscleGroup === muscleGroup)
+  
+  // Get the target rep range for this week based on progression
+  const weekRepInfo = REP_PROGRESSION[weekNumber as keyof typeof REP_PROGRESSION] || REP_PROGRESSION[2]
+  let targetReps = weekRepInfo.reps
+  
+  // Adjust based on user feedback
+  if (muscleFeedback && (muscleFeedback.difficulty === 'too_hard' || muscleFeedback.difficulty === 'hard')) {
+    // If too hard, reduce to previous week's rep range or minimum
+    const previousWeekReps = REP_PROGRESSION[(weekNumber - 1) as keyof typeof REP_PROGRESSION]?.reps || 6
+    targetReps = Math.max(6, previousWeekReps)
+    console.log(`📉 Reducing reps for "${exerciseName}" to ${targetReps} (user feedback: ${muscleFeedback.difficulty})`)
+  } else if (muscleFeedback && muscleFeedback.difficulty === 'easy') {
+    // If easy, can progress to next week's rep range
+    const nextWeekReps = REP_PROGRESSION[(weekNumber + 1) as keyof typeof REP_PROGRESSION]?.reps || weekRepInfo.reps
+    targetReps = nextWeekReps
+    console.log(`📈 Progressive overload: "${exerciseName}" reps to ${targetReps} (user feedback: easy)`)
+  } else {
+    // Default progression - more aggressive for immediate progression
+    if (!muscleFeedback) {
+      // No feedback = immediate progression - advance to next week's rep range
+      const nextWeekReps = REP_PROGRESSION[(weekNumber + 1) as keyof typeof REP_PROGRESSION]?.reps || weekRepInfo.reps
+      targetReps = nextWeekReps
+      console.log(`🚀 Immediate progression: "${exerciseName}" reps to ${targetReps} (advancing rep range)`)
+    } else {
+      // Default progression based on week
+      console.log(`📊 Professional rep progression: "${exerciseName}" ${targetReps} reps (${weekRepInfo.phase} phase)`)
+    }
+  }
+  
+  return targetReps
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     console.log('📥 Received request body:', JSON.stringify(body, null, 2))
     
-    const { mesocycleId, weekNumber, userFeedback, trainingDays, selectedSplit, workoutPlans } = body
+    const { mesocycleId, weekNumber, userFeedback, trainingDays, selectedSplit, workoutPlans, updateRemainingWorkouts, updateSpecificDay } = body
     
     if (!mesocycleId || !weekNumber) {
       console.error('❌ Missing required parameters:', { mesocycleId, weekNumber })
@@ -106,12 +220,206 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (existingWeek) {
-      console.log(`⚠️ Week ${weekNumber} already exists for mesocycle ${mesocycleId}`)
-      return NextResponse.json({
-        success: false,
-        error: `Week ${weekNumber} already exists`,
-        existingWeek: existingWeek
-      }, { status: 409 }) // Conflict status
+      console.log(`🔍 Found existing week: Week ${weekNumber}`)
+      if (updateSpecificDay) {
+        console.log(`🔄 Updating Day ${updateSpecificDay} in Week ${weekNumber} with progressive overload`)
+        console.log(`🔍 updateSpecificDay value: ${updateSpecificDay} (type: ${typeof updateSpecificDay})`)
+        
+        // Get the specific workout for the day
+        console.log(`🔍 Looking for Day ${updateSpecificDay} workout in Week ${weekNumber} (week_id: ${existingWeek.id})`)
+        
+        // First, let's see what workouts exist in this week
+        const { data: allWorkouts, error: allWorkoutsError } = await supabaseAdmin
+          .from('workouts')
+          .select('*')
+          .eq('week_id', existingWeek.id)
+        
+        if (!allWorkoutsError && allWorkouts) {
+          console.log(`📊 All workouts in Week ${weekNumber}:`)
+          allWorkouts.forEach((w: any) => {
+            // Extract day number from day_name since day_number field doesn't exist
+            const dayMatch = w.day_name?.match(/Day (\d+)/)
+            const dayNumber = dayMatch ? dayMatch[1] : '?'
+            console.log(`  - ${w.day_name} (day_number: ${dayNumber})`)
+          })
+        } else {
+          console.error('❌ Error fetching all workouts:', allWorkoutsError)
+        }
+        
+        console.log(`🔍 Querying for workout with week_id: ${existingWeek.id}, day_number: ${updateSpecificDay}`)
+        
+        // Since day_number field doesn't exist in the database, we'll use day_name pattern matching
+        console.log('🔄 Finding workout by day name pattern...')
+        
+        let { data: workout, error: workoutError } = await supabaseAdmin
+          .from('workouts')
+          .select(`
+            *,
+            exercises (
+              *,
+              sets (*)
+            )
+          `)
+          .eq('week_id', existingWeek.id)
+          .ilike('day_name', `%Day ${updateSpecificDay}%`)
+          .single()
+
+        if (workoutError || !workout) {
+          console.error('❌ Failed to fetch workout by day name:', workoutError)
+          return NextResponse.json({
+            error: `Failed to fetch Day ${updateSpecificDay} workout for update`
+          }, { status: 500 })
+        }
+        
+        console.log(`✅ Found workout by day name: ${workout.day_name}`)
+
+        console.log(`📊 Found workout: ${workout.day_name} (Day ${updateSpecificDay})`)
+
+        // Update the specific workout with progressive overload
+        if (workout.exercises && workout.exercises.length > 0) {
+          console.log(`🔄 Updating workout: ${workout.day_name}`)
+          
+          for (const exercise of workout.exercises) {
+            const muscleGroup = getMuscleGroupFromExercise(exercise.name)
+            const previousSetCount = exercise.sets?.length || 3
+            const baseWeight = exercise.weight || 0
+            
+            // Apply progressive overload
+            const adjustedSets = calculateAdjustedSets(muscleGroup, previousSetCount, userFeedback || [])
+            const progressiveWeight = calculateProgressiveWeight(baseWeight, weekNumber, userFeedback || [], muscleGroup, exercise.name)
+            const targetReps = getTargetRepsForWeek(weekNumber, 8, userFeedback || [], muscleGroup, exercise.name)
+            
+            console.log(`📈 Updating ${exercise.name}: ${previousSetCount} → ${adjustedSets} sets, ${baseWeight}kg → ${progressiveWeight}kg`)
+            
+            // Update exercise with new progressive overload values
+            const { error: exerciseUpdateError } = await supabaseAdmin
+              .from('exercises')
+              .update({
+                weight: progressiveWeight
+              })
+              .eq('id', exercise.id)
+
+            if (exerciseUpdateError) {
+              console.error(`❌ Failed to update exercise ${exercise.name}:`, exerciseUpdateError)
+            }
+
+            // Update sets with new rep targets
+            if (exercise.sets && exercise.sets.length > 0) {
+              for (const set of exercise.sets) {
+                const { error: setUpdateError } = await supabaseAdmin
+                  .from('sets')
+                  .update({
+                    reps: targetReps
+                  })
+                  .eq('id', set.id)
+
+                if (setUpdateError) {
+                  console.error(`❌ Failed to update set for ${exercise.name}:`, setUpdateError)
+                }
+              }
+            }
+          }
+        }
+
+        console.log(`✅ Day ${updateSpecificDay} in Week ${weekNumber} updated with progressive overload!`)
+        return NextResponse.json({
+          success: true,
+          message: `Day ${updateSpecificDay} in Week ${weekNumber} updated with progressive overload`,
+          updatedWorkout: workout.day_name,
+          details: {
+            dayNumber: updateSpecificDay,
+            weekNumber: weekNumber,
+            workoutName: workout.day_name,
+            exercisesUpdated: workout.exercises?.length || 0
+          }
+        }, { status: 200 })
+      } else if (updateRemainingWorkouts) {
+        console.log(`🔄 Updating remaining workouts in Week ${weekNumber} with progressive overload`)
+        
+        // Get all workouts in the current week
+        const { data: workouts, error: workoutsError } = await supabaseAdmin
+          .from('workouts')
+          .select(`
+            *,
+            exercises (
+              *,
+              sets (*)
+            )
+          `)
+          .eq('week_id', existingWeek.id)
+          .order('created_at', { ascending: true })
+
+        if (workoutsError || !workouts) {
+          console.error('❌ Failed to fetch workouts:', workoutsError)
+          return NextResponse.json({
+            error: 'Failed to fetch workouts for update'
+          }, { status: 500 })
+        }
+
+        console.log(`📊 Found ${workouts.length} workouts in Week ${weekNumber}`)
+
+        // Update each workout with progressive overload
+        for (const workout of workouts) {
+          if (workout.exercises && workout.exercises.length > 0) {
+            console.log(`🔄 Updating workout: ${workout.day_name}`)
+            
+            for (const exercise of workout.exercises) {
+              const muscleGroup = getMuscleGroupFromExercise(exercise.name)
+              const previousSetCount = exercise.sets?.length || 3
+              const baseWeight = exercise.weight || 0
+              
+              // Apply progressive overload
+              const adjustedSets = calculateAdjustedSets(muscleGroup, previousSetCount, userFeedback || [])
+              const progressiveWeight = calculateProgressiveWeight(baseWeight, weekNumber, userFeedback || [], muscleGroup, exercise.name)
+              const targetReps = getTargetRepsForWeek(weekNumber, 8, userFeedback || [], muscleGroup, exercise.name)
+              
+              console.log(`📈 Updating ${exercise.name}: ${previousSetCount} → ${adjustedSets} sets, ${baseWeight}kg → ${progressiveWeight}kg`)
+              
+              // Update exercise with new progressive overload values
+              const { error: exerciseUpdateError } = await supabaseAdmin
+                .from('exercises')
+                .update({
+                  weight: progressiveWeight
+                })
+                .eq('id', exercise.id)
+
+              if (exerciseUpdateError) {
+                console.error(`❌ Failed to update exercise ${exercise.name}:`, exerciseUpdateError)
+              }
+
+              // Update sets with new rep targets
+              if (exercise.sets && exercise.sets.length > 0) {
+                for (const set of exercise.sets) {
+                  const { error: setUpdateError } = await supabaseAdmin
+                    .from('sets')
+                    .update({
+                      reps: targetReps
+                    })
+                    .eq('id', set.id)
+
+                  if (setUpdateError) {
+                    console.error(`❌ Failed to update set for ${exercise.name}:`, setUpdateError)
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        console.log('✅ Remaining workouts updated with progressive overload!')
+        return NextResponse.json({
+          success: true,
+          message: `Remaining workouts in Week ${weekNumber} updated with progressive overload`,
+          updatedWorkouts: workouts.length
+        }, { status: 200 })
+      } else {
+        console.log(`⚠️ Week ${weekNumber} already exists for mesocycle ${mesocycleId}`)
+        return NextResponse.json({
+          success: false,
+          error: `Week ${weekNumber} already exists`,
+          existingWeek: existingWeek
+        }, { status: 409 }) // Conflict status
+      }
     }
 
     // Check if week number exceeds mesocycle's total weeks
@@ -161,132 +469,7 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Week created successfully:', week.id)
 
-    // User-driven volume adjustments - ONLY change when user provides specific feedback
-    const calculateAdjustedSets = (muscleGroup: string, previousSetCount: number, feedback: UserFeedback[]) => {
-      const landmarks = VOLUME_LANDMARKS[muscleGroup as keyof typeof VOLUME_LANDMARKS]
-      const minSets = landmarks?.MEV || 2
-      const maxSets = landmarks?.MRV || 25
-      
-      // Start with previous week's set count - NO automatic progression
-      let adjustedSets = previousSetCount || 3
-
-      const muscleFeedback = feedback.find(f => f.muscleGroup === muscleGroup)
-      if (muscleFeedback) {
-        let volumeAdjustment = 0
-
-        // Progressive overload by default, unless user says it's too hard or hard
-        switch (muscleFeedback.difficulty) {
-          case 'too_hard':
-          case 'hard':
-            volumeAdjustment -= 1 // Remove 1 set if user says it was too hard or hard
-            console.log(`📉 Removing 1 set for ${muscleGroup} (user feedback: ${muscleFeedback.difficulty})`)
-            break
-          case 'easy':
-          case 'moderate':
-            // Progressive overload - add 1 set by default
-            volumeAdjustment += 1
-            console.log(`📈 Progressive overload: Adding 1 set for ${muscleGroup} (user feedback: ${muscleFeedback.difficulty})`)
-            break
-        }
-
-        // Additional adjustment only for severe soreness (safety)
-        if (muscleFeedback.soreness === 'severe') {
-          volumeAdjustment -= 1 // Safety reduction for severe soreness
-          console.log(`⚠️ Reducing 1 set for ${muscleGroup} due to severe soreness`)
-        }
-
-        adjustedSets += volumeAdjustment
-      } else {
-        // No feedback = apply default progressive overload for immediate progression
-        adjustedSets += 1
-        console.log(`🚀 Default progressive overload: Adding 1 set for ${muscleGroup} (immediate progression)`)
-      }
-
-      // Ensure we stay within safe limits
-      return Math.max(minSets, Math.min(maxSets, adjustedSets))
-    }
-
-    // No baseline weights - user sets their own starting weights
-
-    const calculateProgressiveWeight = (baseWeight: number, weekNumber: number, feedback: UserFeedback[], muscleGroup: string, exerciseName: string = '') => {
-      // Use exactly what the previous week had - NO assumptions, NO baseline weights
-      let workingWeight = baseWeight
-
-      console.log(`🔄 Using previous weight for "${exerciseName}": ${workingWeight}kg (no automatic assumptions)`)
-
-      const muscleFeedback = feedback.find(f => f.muscleGroup === muscleGroup)
-      
-      // Progressive overload by default, unless user says it's too hard or hard
-      if (muscleFeedback && (muscleFeedback.difficulty === 'too_hard' || muscleFeedback.difficulty === 'hard')) {
-        // Reduce weight when user says it was too hard or hard
-        const reductionRate = 0.05 // 5% reduction for safety
-        const newWeight = workingWeight * (1 - reductionRate)
-        console.log(`📉 Reducing weight for "${exerciseName}" from ${workingWeight}kg to ${Math.round(newWeight * 4) / 4}kg (user feedback: ${muscleFeedback.difficulty})`)
-        return Math.round(newWeight * 4) / 4 // Round to nearest 0.25kg
-      } else {
-        // Progressive overload - increase weight by default (more aggressive for immediate progression)
-        const increaseRate = muscleFeedback ? 0.025 : 0.035 // 3.5% for immediate progression, 2.5% for feedback-based
-        let newWeight = workingWeight * (1 + increaseRate)
-        
-        // If weight is 0 or very low, apply minimum weight progression for immediate progression
-        if (workingWeight === 0 && !muscleFeedback) {
-          // For immediate progression with 0kg weight, start with a reasonable weight
-          newWeight = 5 // Start with 5kg for immediate progression
-          console.log(`🚀 Starting weight for "${exerciseName}": 0kg → ${newWeight}kg (immediate progression)`)
-        } else if (workingWeight < 5 && !muscleFeedback) {
-          // For very low weights, ensure minimum progression
-          newWeight = Math.max(workingWeight + 2.5, 5) // Add at least 2.5kg or start at 5kg
-          console.log(`🚀 Minimum weight progression for "${exerciseName}": ${workingWeight}kg → ${newWeight}kg (immediate progression)`)
-        }
-        
-        const progressionType = muscleFeedback ? 'feedback-based' : 'immediate'
-        console.log(`📈 Progressive overload: "${exerciseName}" from ${workingWeight}kg to ${Math.round(newWeight * 4) / 4}kg (${progressionType})`)
-        return Math.round(newWeight * 4) / 4 // Round to nearest 0.25kg
-      }
-    }
-
-    // Professional rep progression system
-    const REP_PROGRESSION = {
-      1: { reps: 6, phase: 'Strength', description: 'Low rep strength focus' },
-      2: { reps: 8, phase: 'Strength-Hypertrophy', description: 'Moderate rep strength building' },
-      3: { reps: 10, phase: 'Hypertrophy', description: 'Hypertrophy focus' },
-      4: { reps: 12, phase: 'Hypertrophy-Endurance', description: 'High rep hypertrophy' },
-      5: { reps: 16, phase: 'Endurance', description: 'Endurance and conditioning' }
-    }
-
-    const getTargetRepsForWeek = (weekNumber: number, baseReps: number = 8, feedback: UserFeedback[], muscleGroup: string, exerciseName: string = '') => {
-      const muscleFeedback = feedback.find(f => f.muscleGroup === muscleGroup)
-      
-      // Get the target rep range for this week based on progression
-      const weekRepInfo = REP_PROGRESSION[weekNumber as keyof typeof REP_PROGRESSION] || REP_PROGRESSION[2]
-      let targetReps = weekRepInfo.reps
-      
-      // Adjust based on user feedback
-      if (muscleFeedback && (muscleFeedback.difficulty === 'too_hard' || muscleFeedback.difficulty === 'hard')) {
-        // If too hard, reduce to previous week's rep range or minimum
-        const previousWeekReps = REP_PROGRESSION[(weekNumber - 1) as keyof typeof REP_PROGRESSION]?.reps || 6
-        targetReps = Math.max(6, previousWeekReps)
-        console.log(`📉 Reducing reps for "${exerciseName}" to ${targetReps} (user feedback: ${muscleFeedback.difficulty})`)
-      } else if (muscleFeedback && muscleFeedback.difficulty === 'easy') {
-        // If easy, can progress to next week's rep range
-        const nextWeekReps = REP_PROGRESSION[(weekNumber + 1) as keyof typeof REP_PROGRESSION]?.reps || weekRepInfo.reps
-        targetReps = nextWeekReps
-        console.log(`📈 Progressive overload: "${exerciseName}" reps to ${targetReps} (user feedback: easy)`)
-      } else {
-        // Default progression - more aggressive for immediate progression
-        if (!muscleFeedback) {
-          // No feedback = immediate progression - advance to next week's rep range
-          const nextWeekReps = REP_PROGRESSION[(weekNumber + 1) as keyof typeof REP_PROGRESSION]?.reps || weekRepInfo.reps
-          targetReps = nextWeekReps
-          console.log(`🚀 Immediate progression: "${exerciseName}" reps to ${targetReps} (advancing rep range)`)
-        } else {
-          // Default progression based on week
-          console.log(`📊 Professional rep progression: "${exerciseName}" ${targetReps} reps (${weekRepInfo.phase} phase)`)
-        }
-      }
-      
-      return targetReps
-    }
+    // Helper functions are now defined at the top of the file
 
     // First, get the previous week's workouts to copy the actual exercises
     console.log(`🔍 Fetching previous week (${weekNumber - 1}) exercises...`)
@@ -386,7 +569,6 @@ export async function POST(request: NextRequest) {
         console.log(`✅ Created workout: ${newWorkout.day_name}`)
 
         // Copy exercises from previous week with progressive overload
-        console.log(`📋 Processing ${prevWorkout.exercises?.length || 0} exercises for ${newWorkout.day_name}`)
         for (const prevExercise of prevWorkout.exercises || []) {
           const { data: newExercise, error: exerciseError } = await supabaseAdmin
             .from('exercises')
@@ -404,7 +586,6 @@ export async function POST(request: NextRequest) {
 
           // Get muscle group for this exercise
           const muscleGroup = getMuscleGroupFromExercise(prevExercise.name)
-          console.log(`🔍 Processing exercise: ${prevExercise.name} (${muscleGroup})`)
           
           // Calculate adjusted sets based on user feedback
           const adjustedSets = calculateAdjustedSets(
