@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { ExerciseCard } from './ExerciseCard'
 import { WeekFeedback } from './WeekFeedback'
+import { AddExerciseForm } from './AddExerciseForm'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
@@ -26,6 +27,7 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
   const [showCompletion, setShowCompletion] = useState(false)
   const [completionData, setCompletionData] = useState<any>(null)
   const [progressiveOverloadApplied, setProgressiveOverloadApplied] = useState(false)
+  const [showAddExercise, setShowAddExercise] = useState(false)
 
   const refreshWorkout = async () => {
     if (!user) return
@@ -446,6 +448,29 @@ Navigate to Week ${currentWeekNumber + 1} to see the changes!`)
     setShowFeedback(false)
   }
 
+  const handleDeleteExercise = async (exerciseId: number) => {
+    if (!confirm('Are you sure you want to delete this exercise?')) return
+    
+    try {
+      const response = await fetch(`/api/exercises/delete`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ exerciseId })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete exercise')
+      }
+      
+      await refreshWorkout()
+    } catch (error) {
+      console.error('Error deleting exercise:', error)
+      alert('Failed to delete exercise')
+    }
+  }
+
   const formatDate = (date: string | Date) => {
     return new Date(date).toLocaleDateString('en-US', { 
       weekday: 'long',
@@ -579,30 +604,53 @@ The system is working correctly - the updates are in the next week!`)
         </CardHeader>
       </Card>
 
-      {/* Exercises */}
-      <div className="space-y-4">
-        {workout.exercises && workout.exercises.length > 0 ? (
-          workout.exercises
-            .sort((a: any, b: any) => a.exercise_order - b.exercise_order)
-            .map((exercise: any) => (
-              <ExerciseCard
-                key={exercise.id}
-                exercise={exercise}
-                onUpdateExercise={refreshWorkout}
-              />
-            ))
-        ) : (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Plus className="h-12 w-12 mx-auto mb-4 text-gray-400 opacity-50" />
-              <h3 className="font-medium mb-2">No exercises yet</h3>
-              <p className="text-sm text-gray-500 mb-4">
-                This workout doesn&apos;t have any exercises planned
-              </p>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+      {/* Exercise Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Exercises</span>
+            <Button 
+              onClick={() => setShowAddExercise(true)}
+              size="sm"
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Exercise
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {workout.exercises && workout.exercises.length > 0 ? (
+              workout.exercises
+                .sort((a: any, b: any) => a.exercise_order - b.exercise_order)
+                .map((exercise: any) => (
+                  <ExerciseCard
+                    key={exercise.id}
+                    exercise={exercise}
+                    onUpdateExercise={refreshWorkout}
+                    onDeleteExercise={handleDeleteExercise}
+                  />
+                ))
+            ) : (
+              <div className="py-8 text-center">
+                <Plus className="h-12 w-12 mx-auto mb-4 text-gray-400 opacity-50" />
+                <h3 className="font-medium mb-2">No exercises yet</h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  Add exercises to start your workout
+                </p>
+                <Button 
+                  onClick={() => setShowAddExercise(true)}
+                  variant="outline"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add First Exercise
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Workout Notes */}
       {workout.notes && (
@@ -637,6 +685,23 @@ The system is working correctly - the updates are in the next week!`)
               onSubmit={handleFeedbackSubmit}
               onSkip={handleFeedbackSkip}
               loading={feedbackLoading}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Add Exercise Modal */}
+      {showAddExercise && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Add Exercise</h3>
+            <AddExerciseForm
+              workoutId={workout.id}
+              onExerciseAdded={() => {
+                setShowAddExercise(false)
+                refreshWorkout()
+              }}
+              onCancel={() => setShowAddExercise(false)}
             />
           </div>
         </div>

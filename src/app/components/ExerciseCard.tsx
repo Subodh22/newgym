@@ -33,9 +33,10 @@ interface Exercise {
 interface ExerciseCardProps {
   exercise: Exercise
   onUpdateExercise: () => void
+  onDeleteExercise?: (exerciseId: number) => void
 }
 
-export function ExerciseCard({ exercise, onUpdateExercise }: ExerciseCardProps) {
+export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: ExerciseCardProps) {
   const [loading, setLoading] = useState(false)
   const [localSetValues, setLocalSetValues] = useState<{[key: number]: {weight?: number, reps?: number}}>({})
   const [showFeedback, setShowFeedback] = useState(false)
@@ -193,6 +194,16 @@ export function ExerciseCard({ exercise, onUpdateExercise }: ExerciseCardProps) 
               )}
             </div>
           </div>
+          {onDeleteExercise && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onDeleteExercise(exercise.id)}
+              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
         {exercise.rir_description && (
           <p className="text-sm text-blue-600 font-medium">{exercise.rir_description}</p>
