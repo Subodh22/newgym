@@ -4,7 +4,7 @@ import { SupabaseAuthProvider } from "@/lib/contexts/SupabaseAuthContext";
 export const metadata = {
   title: "BaliyoBan",
   description: "Your personal fitness companion - train like an animal",
-  manifest: "/manifest.json",
+  manifest: "/manifest.json?v=2",
   themeColor: "#FFFFFF",
   viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
   appleWebApp: {
@@ -17,11 +17,13 @@ export const metadata = {
   },
   icons: {
     icon: [
-      { url: "/icons/icon-192x192.svg", sizes: "192x192", type: "image/svg+xml" },
-      { url: "/icons/icon-512x512.svg", sizes: "512x512", type: "image/svg+xml" },
+      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-256x256.png", sizes: "256x256", type: "image/png" },
+      { url: "/icons/icon-384x384.png", sizes: "384x384", type: "image/png" },
+      { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
     ],
     apple: [
-      { url: "/icons/icon-192x192.svg", sizes: "192x192", type: "image/svg+xml" },
+      { url: "/icons/apple-touch-icon-180x180.png", sizes: "180x180", type: "image/png" },
     ],
   },
 };
