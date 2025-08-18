@@ -217,16 +217,16 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
       </CardHeader>
       
       <CardContent className="space-y-3">
-        <div className="space-y-2">
-          <div className="grid grid-cols-4 gap-2 text-sm font-medium text-gray-500 pb-2 border-b border-gray-200">
-            <span>Set</span>
+        <div className="space-y-3">
+          <div className="grid grid-cols-4 gap-4 text-sm font-medium text-gray-500 pb-3 border-b border-gray-200">
+            <span>Sets</span>
             <span>Reps</span>
             <span>Weight</span>
             <span>Status</span>
           </div>
           
           {sortedSets.map((set) => (
-            <div key={set.id} className="grid grid-cols-4 gap-2 items-center">
+            <div key={set.id} className="grid grid-cols-4 gap-4 items-center">
               <span className="text-sm font-medium">{set.set_number}</span>
               
               <div className="flex items-center">
