@@ -197,8 +197,9 @@ export async function POST(request: NextRequest) {
 
         adjustedSets += volumeAdjustment
       } else {
-        // No feedback = no changes
-        console.log(`🔄 No feedback for ${muscleGroup}, keeping ${adjustedSets} sets`)
+        // No feedback = apply default progressive overload for immediate progression
+        adjustedSets += 1
+        console.log(`🚀 Default progressive overload: Adding 1 set for ${muscleGroup} (immediate progression)`)
       }
 
       // Ensure we stay within safe limits
@@ -223,15 +224,13 @@ export async function POST(request: NextRequest) {
         console.log(`📉 Reducing weight for "${exerciseName}" from ${workingWeight}kg to ${Math.round(newWeight * 4) / 4}kg (user feedback: ${muscleFeedback.difficulty})`)
         return Math.round(newWeight * 4) / 4 // Round to nearest 0.25kg
       } else {
-        // Progressive overload - increase weight by default
-        const increaseRate = 0.025 // 2.5% increase per week
+        // Progressive overload - increase weight by default (more aggressive for immediate progression)
+        const increaseRate = muscleFeedback ? 0.025 : 0.035 // 3.5% for immediate progression, 2.5% for feedback-based
         const newWeight = workingWeight * (1 + increaseRate)
-        console.log(`📈 Progressive overload: "${exerciseName}" from ${workingWeight}kg to ${Math.round(newWeight * 4) / 4}kg`)
+        const progressionType = muscleFeedback ? 'feedback-based' : 'immediate'
+        console.log(`📈 Progressive overload: "${exerciseName}" from ${workingWeight}kg to ${Math.round(newWeight * 4) / 4}kg (${progressionType})`)
         return Math.round(newWeight * 4) / 4 // Round to nearest 0.25kg
       }
-
-      // For all cases including 0 weight, keep exactly what it was
-      return workingWeight
     }
 
     // Professional rep progression system
@@ -262,8 +261,16 @@ export async function POST(request: NextRequest) {
         targetReps = nextWeekReps
         console.log(`📈 Progressive overload: "${exerciseName}" reps to ${targetReps} (user feedback: easy)`)
       } else {
-        // Default progression based on week
-        console.log(`📊 Professional rep progression: "${exerciseName}" ${targetReps} reps (${weekRepInfo.phase} phase)`)
+        // Default progression - more aggressive for immediate progression
+        if (!muscleFeedback) {
+          // No feedback = immediate progression - advance to next week's rep range
+          const nextWeekReps = REP_PROGRESSION[(weekNumber + 1) as keyof typeof REP_PROGRESSION]?.reps || weekRepInfo.reps
+          targetReps = nextWeekReps
+          console.log(`🚀 Immediate progression: "${exerciseName}" reps to ${targetReps} (advancing rep range)`)
+        } else {
+          // Default progression based on week
+          console.log(`📊 Professional rep progression: "${exerciseName}" ${targetReps} reps (${weekRepInfo.phase} phase)`)
+        }
       }
       
       return targetReps
@@ -456,8 +463,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       success: true, 
       week,
-      method: 'rp-progressive-overload-database',
-      message: `Professional progressive overload week created! Week ${weekNumber} - Structured rep progression with weight and volume increases`,
+              method: 'rp-progressive-overload-database',
+        message: `Fast progressive overload week created! Week ${weekNumber} - Immediate progression with optimized volume and intensity increases`,
       progressionInfo: {
         weekNumber: weekNumber,
         weightProgression: 'Increases by 2.5% by default, reduces when too hard or hard',

@@ -68,55 +68,7 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
     return 1 // Default to week 1
   }
 
-  const checkIfWeekCompleted = async () => {
-    if (!user) return
-    
-    try {
-      // Get all workouts in the current week
-      const { data, error } = await getMesocycles(user.id)
-      if (error) throw error
-      
-      // Find the current workout's week
-      let currentWeek = null
-      for (const mesocycle of data || []) {
-        for (const week of mesocycle.weeks || []) {
-          for (const w of week.workouts || []) {
-            if (w.id === workout.id) {
-              currentWeek = week
-              break
-            }
-          }
-          if (currentWeek) break
-        }
-        if (currentWeek) break
-      }
-      
-      if (!currentWeek) {
-        console.warn('Could not find current week')
-        return
-      }
-      
-      // Check if ALL workouts in this week are completed
-      const allWorkoutsCompleted = currentWeek.workouts?.every((w: any) => w.is_completed) || false
-      
-      console.log(`📊 Week ${currentWeek.week_number} completion status:`)
-      console.log(`Total workouts: ${currentWeek.workouts?.length || 0}`)
-      console.log(`Completed workouts: ${currentWeek.workouts?.filter((w: any) => w.is_completed).length || 0}`)
-      console.log(`All workouts completed: ${allWorkoutsCompleted}`)
-      
-      if (allWorkoutsCompleted) {
-        console.log('🎉 Entire week completed! Showing feedback form...')
-        setShowFeedback(true)
-      } else {
-        console.log('⏳ Week not yet complete, continuing...')
-        // Just refresh the data, don't show feedback
-        onUpdate()
-      }
-      
-    } catch (error) {
-      console.error('Error checking week completion:', error)
-    }
-  }
+  // Removed checkIfWeekCompleted - now using immediate progression for faster results
 
   const handleCompleteWorkout = async () => {
     setLoading(true)
@@ -134,10 +86,10 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
       
       setWorkout({ ...workout, is_completed: allSetsCompleted })
       
-      // Check if this is the last workout of the week
+      // Create next week immediately when workout is completed (FASTER PROGRESSION)
       if (allSetsCompleted) {
-        // Check if all workouts in the current week are now completed
-        await checkIfWeekCompleted()
+        console.log('🚀 Workout completed! Creating next week immediately for faster progression...')
+        await createNextWeekImmediately()
       }
       
       onUpdate()
@@ -145,6 +97,61 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
       console.error('Error completing workout:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const createNextWeekImmediately = async () => {
+    try {
+      console.log('⚡ FAST PROGRESSION: Creating next week immediately after workout completion')
+      
+      // Get mesocycle ID and week number
+      const mesocycleId = getMesocycleId()
+      const currentWeekNumber = getWeekNumber()
+      
+      if (!mesocycleId) {
+        console.error('❌ Could not determine mesocycle ID for immediate progression')
+        return
+      }
+
+      // Create next week with default progressive overload (no user feedback needed)
+      const requestBody = {
+        mesocycleId: mesocycleId,
+        weekNumber: currentWeekNumber + 1,
+        userFeedback: [], // Empty feedback - use default progressive overload
+        trainingDays: 6,
+        selectedSplit: { 'Push': [], 'Pull': [], 'Legs': [] },
+        workoutPlans: {}
+      }
+      
+      console.log('🚀 Creating next week with automatic progressive overload...')
+      
+      const response = await fetch('/api/mesocycles/progressive-week', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        
+        // Handle duplicate week error gracefully
+        if (response.status === 409 && errorData.error?.includes('already exists')) {
+          console.log('✅ Week already exists, continuing with existing progression')
+          return
+        }
+        
+        console.error('❌ Progressive week creation error:', errorData)
+        return
+      }
+
+      const result = await response.json()
+      console.log('✅ Next week created successfully with automatic progression!')
+      
+      // Show success message
+      alert(`🚀 Next week created! Your progressive overload training continues automatically.\n\nWeek ${currentWeekNumber + 1} is ready with optimized volume and intensity.`)
+      
+    } catch (error) {
+      console.error('Error creating next week immediately:', error)
     }
   }
 
