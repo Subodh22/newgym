@@ -202,6 +202,9 @@ export default function Dashboard({ onSelectWorkout, activeTab = 'current' }: Da
               <CardContent>
                 <div className="space-y-3">
                   <h3 className="font-medium">{nextWorkout.day_name}</h3>
+                  {nextWorkout.mesocycle?.name && (
+                    <p className="text-xs text-gray-500"> {nextWorkout.mesocycle.name}</p>
+                  )}
                   <p className="text-sm text-gray-500">
                     {nextWorkout.exercises?.length || 0} exercises planned
                   </p>
@@ -259,8 +262,8 @@ export default function Dashboard({ onSelectWorkout, activeTab = 'current' }: Da
         )
       })()}
 
-      {/* Monthly Heatmap for active mesocycle */}
-      {(() => {
+      {/* Monthly Heatmap for active mesocycle (hidden on Plans tab) */}
+      {activeTab !== 'mesocycles' && (() => {
         const activeMesocycle = mesocycles.find(m => m.is_active)
         const allWorkouts = activeMesocycle?.weeks
           ?.flatMap((week: any) => week.workouts || []) || []
