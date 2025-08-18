@@ -3,7 +3,7 @@ import { SupabaseAuthProvider } from "@/lib/contexts/SupabaseAuthContext";
 
 export const metadata = {
   title: "Astronaut Fitness",
-  description: "Your personal fitness companion - train like an astronaut",
+  description: "Your personal fitness companion - train like an animal",
   manifest: "/manifest.json",
   themeColor: "#FFFFFF",
   viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",

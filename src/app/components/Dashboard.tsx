@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useSupabaseAuth } from '@/lib/hooks/useSupabaseAuth'
 import { getMesocycles } from '@/lib/supabase/database'
 import MesocycleList from './MesocycleList'
+import MesocycleHeatmap from './MesocycleHeatmap'
 import ImportData from './ImportData'
 import { CreateMesocycle } from './CreateMesocycle'
 import { DebugAuth } from './DebugAuth'
@@ -102,16 +103,26 @@ export default function Dashboard({ onSelectWorkout, activeTab = 'current' }: Da
   // Main dashboard view
   return (
     <div className="space-y-6 pb-20">
-      {/* Header */}
-      <div className="space-y-2">
-        <h1 className="text-2xl font-bold">Training Plans</h1>
-        <p className="text-gray-500 text-sm">
-          Manage your mesocycles and training phases
-        </p>
-      </div>
+      {/* Header / Branding */}
+      {activeTab === 'mesocycles' ? (
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold">Training Plans</h1>
+          <p className="text-gray-500 text-sm">
+            Manage your mesocycles and training phases
+          </p>
+        </div>
+      ) : (
+        <div className="flex items-center gap-3 mb-2">
+          <img src="/icons/icon-192x192.svg" alt="Baliyoban" className="h-8 w-8" />
+          <div>
+            <h1 className="text-xl font-bold">Baliyoban</h1>
+            <p className="text-gray-500 text-xs -mt-0.5">Train like an animal</p>
+          </div>
+        </div>
+      )}
 
-      {/* Overview Stats */}
-      {(() => {
+      {/* Overview Stats (hide in current tab) */}
+      {activeTab === 'mesocycles' && (() => {
         const activeMesocycle = mesocycles.find(m => m.is_active)
         const allWorkouts = activeMesocycle?.weeks
           ?.flatMap((week: any) => week.workouts || []) || []
@@ -248,6 +259,24 @@ export default function Dashboard({ onSelectWorkout, activeTab = 'current' }: Da
         )
       })()}
 
+      {/* Monthly Heatmap for active mesocycle */}
+      {(() => {
+        const activeMesocycle = mesocycles.find(m => m.is_active)
+        const allWorkouts = activeMesocycle?.weeks
+          ?.flatMap((week: any) => week.workouts || []) || []
+        if (!activeMesocycle || allWorkouts.length === 0) return null
+        return (
+          <MesocycleHeatmap
+            workouts={allWorkouts.map((w: any) => ({
+              id: w.id,
+              workout_date: w.workout_date,
+              is_completed: w.is_completed
+            }))}
+            title={activeMesocycle.name}
+          />
+        )
+      })()}
+
       {/* Action Buttons - Show in mesocycles tab or when no active mesocycles */}
       {(activeTab === 'mesocycles' || !mesocycles.some(m => m.is_active)) && (
         <div className="flex justify-center">
@@ -263,48 +292,50 @@ export default function Dashboard({ onSelectWorkout, activeTab = 'current' }: Da
 
 
 
-      {/* Mesocycles by Status */}
-      {mesocycles.length > 0 ? (
-        <div className="space-y-6">
-          {(['active', 'planned', 'completed'] as const).map(status => {
-            const filtered = mesocycles.filter(m => {
-              if (status === 'active') return m.is_active
-              if (status === 'planned') return !m.is_active && !isCompleted(m)
-              return isCompleted(m)
-            })
-            
-            if (filtered.length === 0) return null
+      {/* Mesocycles by Status (only show in mesocycles tab) */}
+      {activeTab === 'mesocycles' && (
+        mesocycles.length > 0 ? (
+          <div className="space-y-6">
+            {(['active', 'planned', 'completed'] as const).map(status => {
+              const filtered = mesocycles.filter(m => {
+                if (status === 'active') return m.is_active
+                if (status === 'planned') return !m.is_active && !isCompleted(m)
+                return isCompleted(m)
+              })
+              
+              if (filtered.length === 0) return null
 
-            return (
-              <div key={status} className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-medium capitalize">{status}</h2>
-                  <Badge variant="secondary" className="text-xs">
-                    {filtered.length}
-                  </Badge>
+              return (
+                <div key={status} className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-medium capitalize">{status}</h2>
+                    <Badge variant="secondary" className="text-xs">
+                      {filtered.length}
+                    </Badge>
+                  </div>
+                  
+                  <MesocycleList mesocycles={filtered} onUpdate={loadMesocycles} />
                 </div>
-                
-                <MesocycleList mesocycles={filtered} onUpdate={loadMesocycles} />
+              )
+            })}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <Target className="h-12 w-12 mx-auto mb-4 text-gray-400 opacity-50" />
+              <h3 className="font-medium mb-2">No training plans yet</h3>
+              <p className="text-sm text-gray-500 mb-6">
+                Create your first mesocycle to get started with structured training
+              </p>
+              <div className="flex justify-center">
+                <Button onClick={() => setViewState('create')}>
+                  <Zap className="h-4 w-4 mr-2" />
+                  Create Program
+                </Button>
               </div>
-            )
-          })}
-        </div>
-      ) : (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Target className="h-12 w-12 mx-auto mb-4 text-gray-400 opacity-50" />
-            <h3 className="font-medium mb-2">No training plans yet</h3>
-            <p className="text-sm text-gray-500 mb-6">
-              Create your first mesocycle to get started with structured training
-            </p>
-            <div className="flex justify-center">
-              <Button onClick={() => setViewState('create')}>
-                <Zap className="h-4 w-4 mr-2" />
-                Create Program
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )
       )}
     </div>
   )
