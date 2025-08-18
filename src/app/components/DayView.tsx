@@ -26,7 +26,7 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
   const [feedbackLoading, setFeedbackLoading] = useState(false)
   const [showCompletion, setShowCompletion] = useState(false)
   const [completionData, setCompletionData] = useState<any>(null)
-  const [progressiveOverloadApplied, setProgressiveOverloadApplied] = useState(false)
+  // const [progressiveOverloadApplied, setProgressiveOverloadApplied] = useState(false)
   const [showAddExercise, setShowAddExercise] = useState(false)
 
   const refreshWorkout = async () => {
@@ -217,7 +217,7 @@ Navigate to Week ${currentWeekNumber + 1} to see the changes!`)
       const nextWeekData = await fetchNextWeekData()
       
       // Set progressive overload applied state
-      setProgressiveOverloadApplied(true)
+      // setProgressiveOverloadApplied(true)
       
       onUpdate() // Trigger parent component update
       
@@ -550,56 +550,7 @@ Navigate to Week ${currentWeekNumber + 1} to see the changes!`)
               </Button>
             )}
             
-            {progressiveOverloadApplied && (
-              <div className="ml-4 flex items-center space-x-2">
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
-                <span className="text-sm text-green-600 font-medium">
-                  Progressive overload applied to Day {(() => {
-                    const dayNameMatch = workout.day_name?.match(/Day (\d+)/)
-                    return dayNameMatch ? parseInt(dayNameMatch[1]) : 1
-                  })()} in next week!
-                </span>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={fetchNextWeekData}
-                  className="ml-2"
-                >
-                  View Next Week Updates
-                </Button>
-                <Button 
-                  variant="default" 
-                  size="sm"
-                  onClick={() => {
-                    const currentWeekNumber = getWeekNumber()
-                    const currentDayNumber = (() => {
-                      const dayNameMatch = workout.day_name?.match(/Day (\d+)/)
-                      return dayNameMatch ? parseInt(dayNameMatch[1]) : 1
-                    })()
-                    
-                    // Show detailed information about what was updated
-                    alert(`🚀 Progressive Overload Applied Successfully!
 
-📊 Update Details:
-• Day ${currentDayNumber} in Week ${currentWeekNumber + 1} has been updated
-• Sets increased by 1 (progressive overload)
-• Weight increased by 2.5% (if applicable)
-• Reps advanced to next range
-
-🧭 To see the changes:
-1. Go back to the main page
-2. Navigate to Week ${currentWeekNumber + 1}
-3. Open Day ${currentDayNumber}
-4. You'll see the increased sets and updated weights!
-
-The system is working correctly - the updates are in the next week!`)
-                  }}
-                  className="ml-2 bg-green-600 hover:bg-green-700"
-                >
-                  View Update Details
-                </Button>
-              </div>
-            )}
           </div>
         </CardHeader>
       </Card>

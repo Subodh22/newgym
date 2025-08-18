@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { useSupabaseAuth } from '@/lib/hooks/useSupabaseAuth'
 import { getMesocycles } from '@/lib/supabase/database'
 import MesocycleList from './MesocycleList'
@@ -113,7 +114,7 @@ export default function Dashboard({ onSelectWorkout, activeTab = 'current' }: Da
         </div>
       ) : (
         <div className="flex items-center gap-3 mb-2">
-          <img src="/icons/icon-192x192.svg" alt="Baliyoban" className="h-8 w-8" />
+          <Image src="/icons/icon-192x192.png" alt="Baliyoban" width={32} height={32} className="h-8 w-8" />
           <div>
             <h1 className="text-xl font-bold">Baliyoban</h1>
             <p className="text-gray-500 text-xs -mt-0.5">Train like an animal</p>

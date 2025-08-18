@@ -8,11 +8,12 @@
   --background-end-rgb: 255, 255, 255;
 }
 
+/* Force light mode colors regardless of system preference */
 @media (prefers-color-scheme: dark) {
   :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
+    --foreground-rgb: 0, 0, 0;
+    --background-start-rgb: 214, 219, 220;
+    --background-end-rgb: 255, 255, 255;
   }
 }
 
@@ -24,6 +25,29 @@ body {
       rgb(var(--background-end-rgb))
     )
     rgb(var(--background-start-rgb));
+}
+
+/* Force text colors to prevent mobile dark mode issues */
+* {
+  color-scheme: light;
+}
+
+/* Ensure text elements have explicit colors */
+h1, h2, h3, h4, h5, h6, p, span, div, button, input, textarea, select {
+  color: inherit;
+}
+
+/* Override any potential dark mode text colors */
+.text-black, .text-gray-900, .text-gray-800, .text-gray-700 {
+  color: rgb(0, 0, 0) !important;
+}
+
+.text-gray-600, .text-gray-500 {
+  color: rgb(75, 85, 99) !important;
+}
+
+.text-gray-400, .text-gray-300 {
+  color: rgb(156, 163, 175) !important;
 }
 
 /* Prevent iOS Safari from zooming inputs on focus (requires >=16px font-size) */

@@ -49,24 +49,24 @@ export default function RootLayout({
         <meta name="theme-color" content="#FFFFFF" />
 
         <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon-180x180.png" />
-        <link rel="icon" type="image/svg+xml" sizes="32x32" href="/icons/icon-32x32.svg" />
-        <link rel="icon" type="image/svg+xml" sizes="16x16" href="/icons/icon-16x16.svg" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-192x192.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-192x192.png" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="mask-icon" href="/icons/safari-pinned-tab.svg" color="#FFFFFF" />
-        <link rel="shortcut icon" href="/favicon.ico" />
+        <link rel="shortcut icon" href="/icons/icon-192x192.png" />
 
         <meta name="twitter:card" content="summary" />
         <meta name="twitter:url" content="https://your-domain.com" />
         <meta name="twitter:title" content="Astronaut Fitness" />
         <meta name="twitter:description" content="Your personal fitness companion - train like an astronaut" />
-        <meta name="twitter:image" content="https://your-domain.com/icons/icon-192x192.svg" />
+        <meta name="twitter:image" content="https://your-domain.com/icons/icon-192x192.png" />
         <meta name="twitter:creator" content="@yourusername" />
         <meta property="og:type" content="website" />
         <meta property="og:title" content="Astronaut Fitness" />
         <meta property="og:description" content="Your personal fitness companion - train like an astronaut" />
         <meta property="og:site_name" content="Astronaut Fitness" />
         <meta property="og:url" content="https://your-domain.com" />
-        <meta property="og:image" content="https://your-domain.com/icons/icon-192x192.svg" />
+        <meta property="og:image" content="https://your-domain.com/icons/icon-192x192.png" />
       </head>
       <body>
         <SupabaseAuthProvider>
