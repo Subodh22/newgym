@@ -218,18 +218,18 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
       
       <CardContent className="space-y-3">
         <div className="space-y-2">
-          <div className="grid grid-cols-4 gap-4 text-sm font-medium text-gray-500 pb-2 border-b border-gray-200">
-            <span>Set</span>
-            <span>Weight</span>
-            <span>Reps</span>
-            <span>Status</span>
+          <div className="grid grid-cols-12 gap-2 text-sm font-medium text-gray-500 pb-2 border-b border-gray-200">
+            <span className="col-span-2">Set</span>
+            <span className="col-span-3">Weight</span>
+            <span className="col-span-3">Reps</span>
+            <span className="col-span-4 text-right pr-5">Status</span>
           </div>
           
           {sortedSets.map((set) => (
-            <div key={set.id} className="grid grid-cols-4 gap-4 items-center">
-              <span className="text-sm font-medium">{set.set_number}</span>
+            <div key={set.id} className="grid grid-cols-12 gap-2 items-center">
+              <span className="col-span-2 text-sm font-medium">{set.set_number}</span>
               
-              <div className="flex items-center">
+              <div className="col-span-3 flex items-center">
                 <Input
                   type="number"
                   step="0.5"
@@ -242,11 +242,11 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
                       e.currentTarget.blur()
                     }
                   }}
-                  className="h-8 text-center w-20 border-dashed border-gray-300 hover:border-blue-400 focus:border-blue-500"
+                  className="h-8 text-center w-full border-dashed border-gray-300 hover:border-blue-400 focus:border-blue-500"
                 />
               </div>
               
-              <div className="flex items-center">
+              <div className="col-span-3 flex items-center">
                 <Input
                   type="number"
                   value={getDisplayValue(set, 'reps')}
@@ -258,11 +258,11 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
                       e.currentTarget.blur()
                     }
                   }}
-                  className="h-8 text-center w-16 border-dashed border-gray-300 hover:border-blue-400 focus:border-blue-500"
+                  className="h-8 text-center w-full border-dashed border-gray-300 hover:border-blue-400 focus:border-blue-500"
                 />
               </div>
               
-              <div className="flex items-center gap-1">
+              <div className="col-span-4 flex items-center gap-1 justify-end pr-1">
                 <Button
                   size="sm"
                   variant={set.is_completed ? "default" : "outline"}
