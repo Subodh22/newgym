@@ -10,7 +10,7 @@ import { createMesocycle, createWeek, createWorkout, createExercise, createSet }
 import { useSupabaseAuth } from '@/lib/hooks/useSupabaseAuth'
 import { supabase } from '@/lib/supabase/supabase'
 // Removed direct import of auth-helpers to avoid client-side admin imports
-import { IsraetelInfo } from './IsraetelInfo'
+
 
 interface CreateMesocycleProps {
   onBack: () => void
@@ -380,8 +380,7 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
 
   const renderStep1 = () => (
     <div className="space-y-6">
-      {/* Information Card */}
-      <IsraetelInfo />
+
       
       <div>
         <h3 className="text-lg font-medium mb-4">Mesocycle Setup</h3>
@@ -398,15 +397,22 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
 
           <div>
             <label className="block text-sm font-medium mb-2">Duration (Weeks)</label>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {[4, 5, 6].map(w => (
                 <Button
                   key={w}
                   variant={weeks === w ? "default" : "outline"}
                   onClick={() => setWeeks(w)}
-                  className="flex-1"
+                  className="text-xs sm:text-sm"
                 >
-                  {w} weeks {w === 5 || w === 6 ? '+ Deload' : ''}
+                  <span className="hidden sm:inline">{w} weeks</span>
+                  <span className="sm:hidden">{w}w</span>
+                  {w === 5 || w === 6 && (
+                    <span className="hidden sm:inline"> + Deload</span>
+                  )}
+                  {w === 5 || w === 6 && (
+                    <span className="sm:hidden">+D</span>
+                  )}
                 </Button>
               ))}
             </div>
