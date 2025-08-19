@@ -82,6 +82,195 @@ const EXERCISE_DATABASE = {
   ]
 }
 
+// Mike Israetel's Top 10 Exercises (Renaissance Periodization)
+const MIKE_ISRAETEL_TOP_10 = {
+  'High Bar Squats': { muscleGroup: 'Quadriceps', reps: '8-15', description: 'Less systemic fatigue than low bar, excellent quad development' },
+  'Standing Overhead Barbell Press': { muscleGroup: 'Shoulders', reps: '6-10', description: 'Full shoulder development, core stability challenge' },
+  'Barbell Skull Crushers': { muscleGroup: 'Triceps', reps: '10-20', description: 'Maximum tension at stretched position, superior to kickbacks' },
+  'Pull-ups (Overhand)': { muscleGroup: 'Back', reps: '6-20', description: 'Bodyweight progression, lat-focused development' },
+  'Barbell Bent-Over Rows (from Deficit)': { muscleGroup: 'Back', reps: '6-20', description: 'Stand on platform for deeper stretch, touch stomach' },
+  'Stiff-Legged Deadlift': { muscleGroup: 'Hamstrings', reps: '70-85% 1RM', description: 'Dynamic movement for hamstrings, isometric for back' },
+  'Incline Cambered Bar Bench Press': { muscleGroup: 'Chest', reps: '8-12', description: 'Cambered bar allows deeper stretch than chest level' },
+  'Dips': { muscleGroup: 'Chest', reps: '8-12', description: 'Wide grip, lean forward, friend can hold feet for deeper stretch' },
+  'Super ROM Lateral Raises': { muscleGroup: 'Shoulders', reps: '10-12', description: 'Extended range of motion, light weight, high reps' },
+  'Seated Incline Dumbbell Curls': { muscleGroup: 'Biceps', reps: '8-15', description: 'Deep stretch position, tension throughout lengthened range' }
+}
+
+// Pre-made templates based on popular influencers
+const PREMADE_TEMPLATES = {
+  'Mike Israetel - RP Hypertrophy': {
+    description: 'Dr. Mike Israetel\'s evidence-based 4-week mesocycle for optimal muscle growth',
+    weeks: 4,
+    trainingDays: 6,
+    split: {
+      'Push (Chest, Shoulders, Triceps)': {
+        exercises: [
+          'Incline Cambered Bar Bench Press',
+          'Standing Overhead Barbell Press', 
+          'Dips',
+          'Super ROM Lateral Raises',
+          'Barbell Skull Crushers',
+          'Cable Tricep Pushdown'
+        ],
+        muscleGroups: ['Chest', 'Shoulders', 'Triceps']
+      },
+      'Pull (Back, Biceps)': {
+        exercises: [
+          'Pull-ups (Overhand)',
+          'Barbell Bent-Over Rows (from Deficit)',
+          'Lat Pulldown',
+          'Face Pulls',
+          'Seated Incline Dumbbell Curls',
+          'EZ-Bar Curls'
+        ],
+        muscleGroups: ['Back', 'Biceps']
+      },
+      'Legs (Quads, Hamstrings, Glutes)': {
+        exercises: [
+          'High Bar Squats',
+          'Stiff-Legged Deadlift',
+          'Leg Press',
+          'Romanian Deadlift',
+          'Lying Leg Curls',
+          'Standing Calf Raises'
+        ],
+        muscleGroups: ['Quadriceps', 'Hamstrings', 'Glutes', 'Calves']
+      }
+    },
+    volumeLandmarks: {
+      'Chest': { MEV: 10, MAV: 16, MRV: 22 },
+      'Back': { MEV: 10, MAV: 18, MRV: 25 },
+      'Shoulders': { MEV: 8, MAV: 19, MRV: 26 },
+      'Biceps': { MEV: 6, MAV: 17, MRV: 20 },
+      'Triceps': { MEV: 8, MAV: 17, MRV: 20 },
+      'Quadriceps': { MEV: 8, MAV: 15, MRV: 20 },
+      'Hamstrings': { MEV: 6, MAV: 13, MRV: 20 },
+      'Glutes': { MEV: 6, MAV: 12, MRV: 16 },
+      'Calves': { MEV: 8, MAV: 16, MRV: 25 }
+    }
+  },
+  'Jeff Nippard - Push Pull Legs': {
+    description: 'Jeff Nippard\'s science-based PPL split for balanced development',
+    weeks: 4,
+    trainingDays: 6,
+    split: {
+      'Push (Chest, Shoulders, Triceps)': {
+        exercises: [
+          'Barbell Bench Press',
+          'Incline Dumbbell Press',
+          'Overhead Press',
+          'Lateral Raises',
+          'Skull Crushers (EZ-Bar)',
+          'Cable Tricep Pushdown'
+        ],
+        muscleGroups: ['Chest', 'Shoulders', 'Triceps']
+      },
+      'Pull (Back, Biceps)': {
+        exercises: [
+          'Pull-ups',
+          'Barbell Rows',
+          'Lat Pulldown',
+          'Face Pulls',
+          'Barbell Curls',
+          'Hammer Curls'
+        ],
+        muscleGroups: ['Back', 'Biceps']
+      },
+      'Legs (Quads, Hamstrings, Glutes)': {
+        exercises: [
+          'Back Squat',
+          'Romanian Deadlift',
+          'Leg Press',
+          'Lying Leg Curls',
+          'Hip Thrusts',
+          'Standing Calf Raises'
+        ],
+        muscleGroups: ['Quadriceps', 'Hamstrings', 'Glutes', 'Calves']
+      }
+    }
+  },
+  'Athlean-X - Total Body': {
+    description: 'Jeff Cavaliere\'s functional strength and muscle building program',
+    weeks: 4,
+    trainingDays: 4,
+    split: {
+      'Upper Body': {
+        exercises: [
+          'Barbell Bench Press',
+          'Pull-ups',
+          'Overhead Press',
+          'Barbell Rows',
+          'Lateral Raises',
+          'Barbell Curls',
+          'Skull Crushers (EZ-Bar)'
+        ],
+        muscleGroups: ['Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps']
+      },
+      'Lower Body': {
+        exercises: [
+          'Back Squat',
+          'Romanian Deadlift',
+          'Leg Press',
+          'Lying Leg Curls',
+          'Hip Thrusts',
+          'Standing Calf Raises'
+        ],
+        muscleGroups: ['Quadriceps', 'Hamstrings', 'Glutes', 'Calves']
+      }
+    }
+  },
+  'John Meadows - Mountain Dog': {
+    description: 'John Meadows\' bodybuilding-focused program with unique exercise variations',
+    weeks: 4,
+    trainingDays: 5,
+    split: {
+      'Chest & Triceps': {
+        exercises: [
+          'Incline Dumbbell Press',
+          'Dips',
+          'Cable Flyes',
+          'Close-Grip Bench Press',
+          'Overhead Tricep Extension',
+          'Cable Tricep Pushdown'
+        ],
+        muscleGroups: ['Chest', 'Triceps']
+      },
+      'Back & Biceps': {
+        exercises: [
+          'Pull-ups',
+          'Barbell Rows',
+          'Lat Pulldown',
+          'Face Pulls',
+          'EZ-Bar Curls',
+          'Hammer Curls'
+        ],
+        muscleGroups: ['Back', 'Biceps']
+      },
+      'Shoulders': {
+        exercises: [
+          'Overhead Press',
+          'Lateral Raises',
+          'Rear Delt Flyes',
+          'Arnold Press',
+          'Upright Rows'
+        ],
+        muscleGroups: ['Shoulders']
+      },
+      'Legs': {
+        exercises: [
+          'Back Squat',
+          'Romanian Deadlift',
+          'Leg Press',
+          'Lying Leg Curls',
+          'Hip Thrusts',
+          'Standing Calf Raises'
+        ],
+        muscleGroups: ['Quadriceps', 'Hamstrings', 'Glutes', 'Calves']
+      }
+    }
+  }
+}
+
 // Curated recommendations (best starting options) per muscle group
 const RECOMMENDED_EXERCISES: Record<string, string[]> = {
   Chest: ['Barbell Bench Press', 'Incline Dumbbell Press'],
@@ -124,6 +313,7 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
   
   // Selected exercises for each workout
   const [workoutPlans, setWorkoutPlans] = useState<any>({})
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('')
 
   const handleSplitChange = (split: string) => {
     setSelectedSplit(split)
@@ -171,6 +361,39 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
   const autoFillEntirePlan = () => {
     const workoutTypes = Object.keys(TRAINING_SPLITS[selectedSplit as keyof typeof TRAINING_SPLITS])
     workoutTypes.forEach((wt) => autoFillWorkoutType(wt))
+  }
+
+  const applyTemplate = (templateName: string) => {
+    if (templateName === 'Custom') {
+      setSelectedTemplate('Custom')
+      setMesocycleName('')
+      setWeeks(4)
+      setTrainingDays(6)
+      setWorkoutPlans({})
+      return
+    }
+
+    const template = PREMADE_TEMPLATES[templateName as keyof typeof PREMADE_TEMPLATES]
+    if (!template) return
+
+    setSelectedTemplate(templateName)
+    setMesocycleName(templateName)
+    setWeeks(template.weeks)
+    setTrainingDays(template.trainingDays)
+    
+    // Clear existing workout plans
+    setWorkoutPlans({})
+    
+    // Apply template exercises
+    Object.entries(template.split).forEach(([workoutType, workoutData]) => {
+      const exercises = (workoutData as any).exercises || []
+      exercises.forEach((exercise: string) => {
+        const muscleGroup = (workoutData as any).muscleGroups.find((mg: string) => 
+          EXERCISE_DATABASE[mg as keyof typeof EXERCISE_DATABASE]?.includes(exercise)
+        ) || 'Other'
+        addExerciseToWorkout(workoutType, exercise, muscleGroup)
+      })
+    })
   }
 
   const removeExerciseFromWorkout = (workoutType: string, exercise: string) => {
@@ -395,8 +618,65 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
 
   const renderStep1 = () => (
     <div className="space-y-6">
-
       
+      {/* Template Selection */}
+      <div>
+        <h3 className="text-lg font-medium mb-4">Choose a Template (Optional)</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+          {/* Custom Option */}
+          <Card 
+            className={`cursor-pointer transition-all hover:shadow-md ${
+              selectedTemplate === 'Custom' ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+            }`}
+            onClick={() => applyTemplate('Custom')}
+          >
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold">Custom Program</CardTitle>
+              <p className="text-xs text-gray-600">Build your own program from scratch</p>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="flex items-center justify-between text-xs text-gray-500">
+                <span>4-6 weeks</span>
+                <span>3-7 days/week</span>
+                <span>Flexible</span>
+              </div>
+              {selectedTemplate === 'Custom' && (
+                <Badge className="mt-2 text-xs" variant="default">
+                  Selected
+                </Badge>
+              )}
+            </CardContent>
+          </Card>
+          
+          {Object.entries(PREMADE_TEMPLATES).map(([templateName, template]) => (
+            <Card 
+              key={templateName} 
+              className={`cursor-pointer transition-all hover:shadow-md ${
+                selectedTemplate === templateName ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+              }`}
+              onClick={() => applyTemplate(templateName)}
+            >
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold">{templateName}</CardTitle>
+                <p className="text-xs text-gray-600">{template.description}</p>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span>{template.weeks} weeks</span>
+                  <span>{template.trainingDays} days/week</span>
+                  <span>{Object.keys(template.split).length} workouts</span>
+                </div>
+                {selectedTemplate === templateName && (
+                  <Badge className="mt-2 text-xs" variant="default">
+                    Selected
+                  </Badge>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
       <div>
         <h3 className="text-lg font-medium mb-4">Mesocycle Setup</h3>
         
