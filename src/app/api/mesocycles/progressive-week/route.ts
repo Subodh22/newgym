@@ -11,7 +11,8 @@ const VOLUME_LANDMARKS = {
   'Quadriceps': { MEV: 8, MAV: 15, MRV: 20 },
   'Hamstrings': { MEV: 6, MAV: 13, MRV: 20 },
   'Glutes': { MEV: 6, MAV: 12, MRV: 16 },
-  'Calves': { MEV: 8, MAV: 16, MRV: 25 }
+  'Calves': { MEV: 8, MAV: 16, MRV: 25 },
+  'Cardio': { MEV: 2, MAV: 4, MRV: 6 } // Sessions per week, not sets
 }
 
 // RIR (Reps in Reserve) progression system following RP methodology
@@ -63,6 +64,15 @@ const getMuscleGroupFromExercise = (exerciseName: string): string => {
   if (name.includes('calf')) return 'Calves'
   if (name.includes('crunch') || name.includes('plank') || name.includes('sit') || name.includes('abs')) return 'Abs'
   if (name.includes('glute') || name.includes('hip')) return 'Glutes'
+  // Cardio exercises
+  if (name.includes('treadmill') || name.includes('running') || name.includes('walking') || 
+      name.includes('elliptical') || name.includes('stairmaster') || name.includes('rowing') ||
+      name.includes('bike') || name.includes('cycling') || name.includes('swimming') ||
+      name.includes('jump') || name.includes('sprint') || name.includes('cardio') ||
+      name.includes('assault') || name.includes('arc') || name.includes('jacob') ||
+      name.includes('versa') || name.includes('ski') || name.includes('burpee') ||
+      name.includes('mountain') || name.includes('high knee') || name.includes('butt kick') ||
+      name.includes('jumping jack') || name.includes('box jump') || name.includes('hill')) return 'Cardio'
   return 'Other'
 }
 
