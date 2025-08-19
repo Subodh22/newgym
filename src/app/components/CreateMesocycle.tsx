@@ -744,7 +744,76 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
   const renderStep1 = () => (
     <div className="space-y-6">
       
-      {/* Enhanced Template Selection */}
+      {/* Mesocycle Setup - Now First */}
+      <div>
+        <div className="mb-6">
+          <h3 className="text-xl font-bold mb-2">Basic Setup</h3>
+          <p className="text-gray-600 text-sm">Configure your mesocycle parameters</p>
+        </div>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">Mesocycle Name</label>
+            <Input
+              value={mesocycleName}
+              onChange={(e) => setMesocycleName(e.target.value)}
+              placeholder="e.g., Hypertrophy Phase 1"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Duration (Weeks)</label>
+            <div className="grid grid-cols-3 gap-2">
+              {[4, 5, 6].map(w => (
+                <Button
+                  key={w}
+                  variant={weeks === w ? "default" : "outline"}
+                  onClick={() => setWeeks(w)}
+                  className="text-xs sm:text-sm"
+                >
+                  <span className="hidden sm:inline">{w} weeks</span>
+                  <span className="sm:hidden">{w}w</span>
+                  {w === 5 || w === 6 && (
+                    <span className="hidden sm:inline"> + Deload</span>
+                  )}
+                  {w === 5 || w === 6 && (
+                    <span className="sm:hidden">+D</span>
+                  )}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Training Split</label>
+            <div className="space-y-2">
+              {Object.keys(TRAINING_SPLITS).map(split => (
+                <Button
+                  key={split}
+                  variant={selectedSplit === split ? "default" : "outline"}
+                  onClick={() => handleSplitChange(split)}
+                  className="w-full justify-start"
+                >
+                  {split}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Training Days per Week</label>
+            <Input
+              type="number"
+              min="3"
+              max="7"
+              value={trainingDays}
+              onChange={(e) => setTrainingDays(parseInt(e.target.value) || 6)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Enhanced Template Selection - Now Second */}
       <div>
         <div className="mb-6">
           <h3 className="text-xl font-bold mb-2">Choose Your Training Program</h3>
@@ -885,71 +954,6 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
               </Card>
             )
           })}
-        </div>
-      </div>
-
-      <div>
-        <h3 className="text-lg font-medium mb-4">Mesocycle Setup</h3>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Mesocycle Name</label>
-            <Input
-              value={mesocycleName}
-              onChange={(e) => setMesocycleName(e.target.value)}
-              placeholder="e.g., Hypertrophy Phase 1"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Duration (Weeks)</label>
-            <div className="grid grid-cols-3 gap-2">
-              {[4, 5, 6].map(w => (
-                <Button
-                  key={w}
-                  variant={weeks === w ? "default" : "outline"}
-                  onClick={() => setWeeks(w)}
-                  className="text-xs sm:text-sm"
-                >
-                  <span className="hidden sm:inline">{w} weeks</span>
-                  <span className="sm:hidden">{w}w</span>
-                  {w === 5 || w === 6 && (
-                    <span className="hidden sm:inline"> + Deload</span>
-                  )}
-                  {w === 5 || w === 6 && (
-                    <span className="sm:hidden">+D</span>
-                  )}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Training Split</label>
-            <div className="space-y-2">
-              {Object.keys(TRAINING_SPLITS).map(split => (
-                <Button
-                  key={split}
-                  variant={selectedSplit === split ? "default" : "outline"}
-                  onClick={() => handleSplitChange(split)}
-                  className="w-full justify-start"
-                >
-                  {split}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Training Days per Week</label>
-            <Input
-              type="number"
-              min="3"
-              max="7"
-              value={trainingDays}
-              onChange={(e) => setTrainingDays(parseInt(e.target.value) || 6)}
-            />
-          </div>
         </div>
       </div>
 
