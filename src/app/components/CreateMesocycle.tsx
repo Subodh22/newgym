@@ -28,7 +28,8 @@ const VOLUME_LANDMARKS = {
   'Hamstrings': { MEV: 6, MAV: 13, MRV: 20 },
   'Glutes': { MEV: 6, MAV: 12, MRV: 16 },
   'Calves': { MEV: 8, MAV: 16, MRV: 25 },
-  'Cardio': { MEV: 2, MAV: 4, MRV: 6 } // Sessions per week, not sets
+  'Abs': { MEV: 6, MAV: 12, MRV: 18 },
+  'Cardio': { MEV: 10, MAV: 20, MRV: 30 } // Minutes per week
 }
 
 // Exercise database organized by muscle group
@@ -94,13 +95,12 @@ const EXERCISE_DATABASE = {
     'Long-Lever Plank', 'Wall Slide', 'Hip Abduction'
   ],
   'Cardio': [
-    'Treadmill Running', 'Treadmill Walking', 'Elliptical', 'Stairmaster',
-    'Rowing Machine', 'Stationary Bike', 'Spin Bike', 'Assault Bike',
-    'Arc Trainer', 'Jacob\'s Ladder', 'VersaClimber', 'Ski Erg',
-    'Outdoor Running', 'Outdoor Cycling', 'Swimming', 'Jump Rope',
-    'Burpees', 'Mountain Climbers', 'High Knees', 'Butt Kicks',
-    'Jumping Jacks', 'Box Jumps', 'Sprint Intervals', 'Hill Sprints',
-    'Stair Running', 'Treadmill Incline Walking', 'Cross Trainer'
+    'Treadmill Running', 'Elliptical', 'Stairmaster', 'Rowing Machine',
+    'Stationary Bike', 'Cycling', 'Swimming', 'Jump Rope', 'Burpees',
+    'Mountain Climbers', 'High Knees', 'Butt Kicks', 'Jumping Jacks',
+    'Box Jumps', 'Sprint Intervals', 'HIIT Training', 'Steady State Cardio',
+    'Incline Walking', 'Stair Climbing', 'Rowing', 'Assault Bike',
+    'VersaClimber', 'Jacob\'s Ladder', 'Arc Trainer', 'Cross Trainer'
   ]
 }
 
@@ -365,6 +365,17 @@ const PREMADE_TEMPLATES = {
           'Concentration Curls'
         ],
         muscleGroups: ['Biceps', 'Triceps']
+      },
+      'Cardio': {
+        exercises: [
+          'Treadmill Running',
+          'Stairmaster',
+          'Rowing Machine',
+          'HIIT Training',
+          'Steady State Cardio',
+          'Incline Walking'
+        ],
+        muscleGroups: ['Cardio']
       }
     },
     volumeLandmarks: {
@@ -375,61 +386,8 @@ const PREMADE_TEMPLATES = {
       'Hamstrings': { MEV: 8, MAV: 16, MRV: 24 },
       'Biceps': { MEV: 8, MAV: 16, MRV: 24 },
       'Triceps': { MEV: 8, MAV: 16, MRV: 24 },
-      'Calves': { MEV: 12, MAV: 20, MRV: 28 }
-    }
-  },
-  'Cardio & Conditioning': {
-    description: 'Comprehensive cardio and conditioning program with varied intensity levels',
-    weeks: 4,
-    trainingDays: 5,
-    split: {
-      'Low Intensity Cardio': {
-        exercises: [
-          'Treadmill Walking',
-          'Elliptical',
-          'Stationary Bike',
-          'Outdoor Walking',
-          'Swimming'
-        ],
-        muscleGroups: ['Cardio']
-      },
-      'High Intensity Cardio': {
-        exercises: [
-          'Treadmill Running',
-          'Stairmaster',
-          'Rowing Machine',
-          'Assault Bike',
-          'Sprint Intervals'
-        ],
-        muscleGroups: ['Cardio']
-      },
-      'Mixed Cardio': {
-        exercises: [
-          'Jump Rope',
-          'Burpees',
-          'Mountain Climbers',
-          'High Knees',
-          'Box Jumps'
-        ],
-        muscleGroups: ['Cardio']
-      },
-      'Strength Training': {
-        exercises: [
-          'Push-ups',
-          'Pull-ups',
-          'Squats',
-          'Lunges',
-          'Planks'
-        ],
-        muscleGroups: ['Chest', 'Back', 'Quadriceps', 'Abs']
-      }
-    },
-    volumeLandmarks: {
-      'Cardio': { MEV: 3, MAV: 5, MRV: 7 },
-      'Chest': { MEV: 6, MAV: 12, MRV: 18 },
-      'Back': { MEV: 6, MAV: 12, MRV: 18 },
-      'Quadriceps': { MEV: 6, MAV: 12, MRV: 18 },
-      'Abs': { MEV: 4, MAV: 10, MRV: 16 }
+      'Calves': { MEV: 12, MAV: 20, MRV: 28 },
+      'Cardio': { MEV: 15, MAV: 25, MRV: 35 } // Minutes per week
     }
   }
 }
@@ -459,6 +417,12 @@ const TRAINING_SPLITS = {
   },
   'Full Body': {
     'Full Body': ['Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps', 'Quadriceps', 'Hamstrings', 'Glutes', 'Calves']
+  },
+  'Push/Pull/Legs/Cardio': {
+    'Push (Chest, Shoulders, Triceps)': ['Chest', 'Shoulders', 'Triceps'],
+    'Pull (Back, Biceps)': ['Back', 'Biceps'],
+    'Legs (Quads, Hamstrings, Glutes, Calves)': ['Quadriceps', 'Hamstrings', 'Glutes', 'Calves'],
+    'Cardio': ['Cardio']
   }
 }
 
@@ -948,8 +912,6 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
                   return { color: 'red', icon: '🏔️', bg: 'from-red-50 to-red-100', border: 'border-red-500' }
                 case 'Sam Sulek - High Volume Bodybuilding':
                   return { color: 'indigo', icon: '⚡', bg: 'from-indigo-50 to-indigo-100', border: 'border-indigo-500' }
-                case 'Cardio & Conditioning':
-                  return { color: 'teal', icon: '🏃', bg: 'from-teal-50 to-teal-100', border: 'border-teal-500' }
                 default:
                   return { color: 'blue', icon: '💎', bg: 'from-blue-50 to-blue-100', border: 'border-blue-500' }
               }
