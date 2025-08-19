@@ -63,14 +63,6 @@ const getMuscleGroupFromExercise = (exerciseName: string): string => {
   if (name.includes('calf')) return 'Calves'
   if (name.includes('crunch') || name.includes('plank') || name.includes('sit') || name.includes('abs')) return 'Abs'
   if (name.includes('glute') || name.includes('hip')) return 'Glutes'
-  // Cardio exercises
-  if (name.includes('treadmill') || name.includes('running') || name.includes('elliptical') || 
-      name.includes('stairmaster') || name.includes('rowing') || name.includes('bike') || 
-      name.includes('cycling') || name.includes('swimming') || name.includes('jump') || 
-      name.includes('burpee') || name.includes('climbing') || name.includes('cardio') || 
-      name.includes('hiit') || name.includes('sprint') || name.includes('walking') ||
-      name.includes('assault') || name.includes('versa') || name.includes('jacob') ||
-      name.includes('arc') || name.includes('cross')) return 'Cardio'
   return 'Other'
 }
 
@@ -270,74 +262,6 @@ const getTargetRepsForWeek = (weekNumber: number, baseReps: number = 8, feedback
   }
   
   return targetReps
-}
-
-// Mike Israetel RP Time Progression System for Cardio
-const TIME_PROGRESSION = {
-  1: { minutes: 15, intensity: 'moderate', phase: 'MEV', description: 'Week 1: Building cardio base' },
-  2: { minutes: 20, intensity: 'moderate', phase: 'MAV', description: 'Week 2: Moderate cardio volume' },
-  3: { minutes: 25, intensity: 'moderate-high', phase: 'MAV', description: 'Week 3: Increased cardio volume' },
-  4: { minutes: 30, intensity: 'high', phase: 'MRV', description: 'Week 4: Peak cardio volume' },
-  5: { minutes: 15, intensity: 'light', phase: 'Deload', description: 'Week 5: Active recovery cardio' }
-}
-
-const getTargetTimeForWeek = (weekNumber: number, baseTime: number = 20, feedback: UserFeedback[], muscleGroup: string, exerciseName: string = '') => {
-  const muscleFeedback = feedback.find(f => f.muscleGroup === muscleGroup)
-  
-  // Get the target time for this week based on RP progression
-  const weekTimeInfo = TIME_PROGRESSION[weekNumber as keyof typeof TIME_PROGRESSION] || TIME_PROGRESSION[2]
-  let targetTime = weekTimeInfo.minutes
-  
-  // RP Time Progression System for Cardio
-  if (muscleFeedback) {
-    switch (muscleFeedback.difficulty) {
-      case 'too_hard':
-        // Performance Rating 4: Reduce time by 5 minutes
-        targetTime = Math.max(10, targetTime - 5)
-        console.log(`📉 RP time adjustment: "${exerciseName}" reduced to ${targetTime} minutes (too hard)`)
-        break
-      case 'hard':
-        // Performance Rating 3: Reduce time by 2-3 minutes
-        targetTime = Math.max(10, targetTime - 3)
-        console.log(`📉 RP time adjustment: "${exerciseName}" reduced to ${targetTime} minutes (hard)`)
-        break
-      case 'easy':
-        // Performance Rating 1: Increase time by 5 minutes
-        targetTime = Math.min(45, targetTime + 5)
-        console.log(`📈 RP time progression: "${exerciseName}" increased to ${targetTime} minutes (easy)`)
-        break
-      case 'moderate':
-        // Performance Rating 2: Standard progression
-        console.log(`📊 RP standard progression: "${exerciseName}" ${targetTime} minutes (${weekTimeInfo.phase} phase)`)
-        break
-    }
-
-    // Recovery-based time adjustments
-    if (muscleFeedback.recovery === 'poor' && muscleFeedback.pumpQuality && muscleFeedback.pumpQuality <= 2) {
-      // Poor pump + poor recovery: Reduce time
-      targetTime = Math.max(10, targetTime - 2)
-      console.log(`⚠️ RP recovery adjustment: "${exerciseName}" reduced to ${targetTime} minutes due to poor recovery/pump`)
-    } else if (muscleFeedback.recovery === 'excellent' && muscleFeedback.pumpQuality && muscleFeedback.pumpQuality >= 4) {
-      // Excellent pump + recovery: Increase time
-      targetTime = Math.min(45, targetTime + 3)
-      console.log(`🚀 RP recovery adjustment: "${exerciseName}" increased to ${targetTime} minutes due to excellent recovery/pump`)
-    }
-  } else {
-    // No feedback - apply standard RP progression
-    console.log(`📊 RP standard progression: "${exerciseName}" ${targetTime} minutes (${weekTimeInfo.phase} phase)`)
-  }
-
-  // Exercise-specific time ranges
-  const exerciseNameLower = exerciseName.toLowerCase()
-  if (exerciseNameLower.includes('hiit') || exerciseNameLower.includes('sprint') || exerciseNameLower.includes('burpee')) {
-    // High-intensity cardio: 10-25 minutes
-    targetTime = Math.max(10, Math.min(25, targetTime))
-  } else if (exerciseNameLower.includes('steady') || exerciseNameLower.includes('walking') || exerciseNameLower.includes('elliptical')) {
-    // Steady-state cardio: 15-45 minutes
-    targetTime = Math.max(15, Math.min(45, targetTime))
-  }
-  
-  return targetTime
 }
 
 export async function POST(request: NextRequest) {
@@ -823,84 +747,40 @@ export async function POST(request: NextRequest) {
         const exercisesInGroup = exercisesByMuscleGroup[muscleGroup].length
         const setsPerExercise = Math.max(3, Math.min(4, Math.round(muscleGroupSets[muscleGroup] / exercisesInGroup)))
         
-        // Handle cardio vs strength exercises differently
-        const isCardio = muscleGroup === 'Cardio'
+        const progressiveWeight = calculateProgressiveWeight(baseWeight, weekNumber, userFeedback || [], muscleGroup, prevExercise.name)
+        const targetReps = getTargetRepsForWeek(weekNumber, 8, userFeedback || [], muscleGroup, prevExercise.name)
         
-        if (isCardio) {
-          // Cardio exercises: use time-based progression
-          const baseTime = prevExercise.sets?.[0]?.reps || 20 // Use reps field for time in minutes
-          const targetTime = getTargetTimeForWeek(weekNumber, baseTime, userFeedback || [], muscleGroup, prevExercise.name)
-          
-          console.log(`📈 RP cardio progression: ${prevExercise.name} - ${setsPerExercise} sets, ${baseTime}min → ${targetTime}min`)
+        console.log(`📈 RP exercise progression: ${prevExercise.name} - ${setsPerExercise} sets, ${baseWeight}kg → ${progressiveWeight}kg`)
 
-          const { data: newExercise, error: exerciseError } = await supabaseAdmin
-            .from('exercises')
+        const { data: newExercise, error: exerciseError } = await supabaseAdmin
+          .from('exercises')
+          .insert({
+            workout_id: newWorkout.id,
+            name: prevExercise.name,
+            exercise_order: prevExercise.exercise_order
+          })
+          .select()
+          .single()
+
+        if (exerciseError || !newExercise) {
+          console.error(`❌ Failed to create exercise: ${exerciseError?.message}`)
+          continue
+        }
+
+        // Create sets with progressive overload
+        for (let setNum = 1; setNum <= setsPerExercise; setNum++) {
+          const { error: setError } = await supabaseAdmin
+            .from('sets')
             .insert({
-              workout_id: newWorkout.id,
-              name: prevExercise.name,
-              exercise_order: prevExercise.exercise_order
+              exercise_id: newExercise.id,
+              set_number: setNum,
+              weight: progressiveWeight,
+              reps: targetReps,
+              is_completed: false
             })
-            .select()
-            .single()
 
-          if (exerciseError || !newExercise) {
-            console.error(`❌ Failed to create exercise: ${exerciseError?.message}`)
-            continue
-          }
-
-          // Create sets with time-based progression for cardio
-          for (let setNum = 1; setNum <= setsPerExercise; setNum++) {
-            const { error: setError } = await supabaseAdmin
-              .from('sets')
-              .insert({
-                exercise_id: newExercise.id,
-                set_number: setNum,
-                weight: 0, // No weight for cardio
-                reps: targetTime, // Use reps field to store time in minutes
-                is_completed: false
-              })
-
-            if (setError) {
-              console.error(`❌ Failed to create set: ${setError.message}`)
-            }
-          }
-        } else {
-          // Strength exercises: use weight and rep-based progression
-          const progressiveWeight = calculateProgressiveWeight(baseWeight, weekNumber, userFeedback || [], muscleGroup, prevExercise.name)
-          const targetReps = getTargetRepsForWeek(weekNumber, 8, userFeedback || [], muscleGroup, prevExercise.name)
-          
-          console.log(`📈 RP strength progression: ${prevExercise.name} - ${setsPerExercise} sets, ${baseWeight}kg → ${progressiveWeight}kg`)
-
-          const { data: newExercise, error: exerciseError } = await supabaseAdmin
-            .from('exercises')
-            .insert({
-              workout_id: newWorkout.id,
-              name: prevExercise.name,
-              exercise_order: prevExercise.exercise_order
-            })
-            .select()
-            .single()
-
-          if (exerciseError || !newExercise) {
-            console.error(`❌ Failed to create exercise: ${exerciseError?.message}`)
-            continue
-          }
-
-          // Create sets with progressive overload for strength
-          for (let setNum = 1; setNum <= setsPerExercise; setNum++) {
-            const { error: setError } = await supabaseAdmin
-              .from('sets')
-              .insert({
-                exercise_id: newExercise.id,
-                set_number: setNum,
-                weight: progressiveWeight,
-                reps: targetReps,
-                is_completed: false
-              })
-
-            if (setError) {
-              console.error(`❌ Failed to create set: ${setError.message}`)
-            }
+          if (setError) {
+            console.error(`❌ Failed to create set: ${setError.message}`)
           }
         }
       }

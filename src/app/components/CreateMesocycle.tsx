@@ -28,8 +28,7 @@ const VOLUME_LANDMARKS = {
   'Hamstrings': { MEV: 6, MAV: 13, MRV: 20 },
   'Glutes': { MEV: 6, MAV: 12, MRV: 16 },
   'Calves': { MEV: 8, MAV: 16, MRV: 25 },
-  'Abs': { MEV: 6, MAV: 12, MRV: 18 },
-  'Cardio': { MEV: 10, MAV: 20, MRV: 30 } // Minutes per week
+  'Cardio': { MEV: 2, MAV: 4, MRV: 6 } // Cardio sessions per week
 }
 
 // Exercise database organized by muscle group
@@ -95,12 +94,10 @@ const EXERCISE_DATABASE = {
     'Long-Lever Plank', 'Wall Slide', 'Hip Abduction'
   ],
   'Cardio': [
-    'Treadmill Running', 'Elliptical', 'Stairmaster', 'Rowing Machine',
-    'Stationary Bike', 'Cycling', 'Swimming', 'Jump Rope', 'Burpees',
-    'Mountain Climbers', 'High Knees', 'Butt Kicks', 'Jumping Jacks',
-    'Box Jumps', 'Sprint Intervals', 'HIIT Training', 'Steady State Cardio',
-    'Incline Walking', 'Stair Climbing', 'Rowing', 'Assault Bike',
-    'VersaClimber', 'Jacob\'s Ladder', 'Arc Trainer', 'Cross Trainer'
+    'Treadmill Running', 'Stairmaster', 'Rowing Machine', 'Elliptical',
+    'Stationary Bike', 'HIIT Training', 'Sprint Intervals', 'Jogging',
+    'Cycling', 'Swimming', 'Jump Rope', 'Burpees', 'Mountain Climbers',
+    'High Knees', 'Butt Kicks', 'Jumping Jacks', 'Box Jumps'
   ]
 }
 
@@ -365,17 +362,6 @@ const PREMADE_TEMPLATES = {
           'Concentration Curls'
         ],
         muscleGroups: ['Biceps', 'Triceps']
-      },
-      'Cardio': {
-        exercises: [
-          'Treadmill Running',
-          'Stairmaster',
-          'Rowing Machine',
-          'HIIT Training',
-          'Steady State Cardio',
-          'Incline Walking'
-        ],
-        muscleGroups: ['Cardio']
       }
     },
     volumeLandmarks: {
@@ -386,8 +372,7 @@ const PREMADE_TEMPLATES = {
       'Hamstrings': { MEV: 8, MAV: 16, MRV: 24 },
       'Biceps': { MEV: 8, MAV: 16, MRV: 24 },
       'Triceps': { MEV: 8, MAV: 16, MRV: 24 },
-      'Calves': { MEV: 12, MAV: 20, MRV: 28 },
-      'Cardio': { MEV: 15, MAV: 25, MRV: 35 } // Minutes per week
+      'Calves': { MEV: 12, MAV: 20, MRV: 28 }
     }
   }
 }
@@ -402,7 +387,8 @@ const RECOMMENDED_EXERCISES: Record<string, string[]> = {
   Quadriceps: ['Back Squat', 'Leg Press'],
   Hamstrings: ['Romanian Deadlift', 'Lying Leg Curls'],
   Glutes: ['Hip Thrusts', 'Romanian Deadlift'],
-  Calves: ['Standing Calf Raises']
+  Calves: ['Standing Calf Raises'],
+  Cardio: ['Treadmill Running', 'Stairmaster', 'Rowing Machine']
 }
 
 const TRAINING_SPLITS = {
@@ -422,6 +408,11 @@ const TRAINING_SPLITS = {
     'Push (Chest, Shoulders, Triceps)': ['Chest', 'Shoulders', 'Triceps'],
     'Pull (Back, Biceps)': ['Back', 'Biceps'],
     'Legs (Quads, Hamstrings, Glutes, Calves)': ['Quadriceps', 'Hamstrings', 'Glutes', 'Calves'],
+    'Cardio': ['Cardio']
+  },
+  'Upper/Lower/Cardio': {
+    'Upper Body': ['Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps'],
+    'Lower Body': ['Quadriceps', 'Hamstrings', 'Glutes', 'Calves'],
     'Cardio': ['Cardio']
   }
 }
@@ -449,10 +440,14 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
     // Set default training days based on split
     if (split === 'Push/Pull/Legs') setTrainingDays(6)
     else if (split === 'Upper/Lower') setTrainingDays(4)
+    else if (split === 'Push/Pull/Legs/Cardio') setTrainingDays(7)
+    else if (split === 'Upper/Lower/Cardio') setTrainingDays(6)
     else setTrainingDays(3)
   }
 
   const addExerciseToWorkout = (workoutType: string, exercise: string, muscleGroup: string) => {
+    const isTimeBased = isTimeBasedExercise(exercise)
+    
     setWorkoutPlans((prev: any) => ({
       ...prev,
       [workoutType]: {
@@ -460,7 +455,8 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
         [exercise]: {
           muscleGroup,
           sets: 3, // Will be recalculated later based on total exercises
-          reps: getDefaultReps(exercise),
+          reps: isTimeBased ? undefined : getDefaultReps(exercise),
+          duration: isTimeBased ? getDefaultDuration(exercise) : undefined, // in minutes
           weight: 0
         }
       }
@@ -589,6 +585,41 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
       })
     })
     return Math.max(1, totalExercises)
+  }
+
+  // Helper function to determine if an exercise is time-based (cardio)
+  const isTimeBasedExercise = (exerciseName: string): boolean => {
+    const timeBasedKeywords = [
+      'treadmill', 'stairmaster', 'rowing', 'elliptical', 'bike', 'cycling',
+      'swimming', 'jump rope', 'burpees', 'mountain climbers', 'high knees',
+      'butt kicks', 'jumping jacks', 'box jumps', 'hiit', 'sprint', 'jogging'
+    ]
+    
+    const name = exerciseName.toLowerCase()
+    return timeBasedKeywords.some(keyword => name.includes(keyword))
+  }
+
+  // Helper function to get default duration for time-based exercises (in minutes)
+  const getDefaultDuration = (exerciseName: string): number => {
+    const name = exerciseName.toLowerCase()
+    
+    // HIIT and sprint intervals - shorter duration
+    if (name.includes('hiit') || name.includes('sprint') || name.includes('burpees') || name.includes('box jumps')) {
+      return 5 // 5 minutes
+    }
+    
+    // Moderate cardio - medium duration
+    if (name.includes('jogging') || name.includes('cycling') || name.includes('elliptical')) {
+      return 20 // 20 minutes
+    }
+    
+    // Endurance cardio - longer duration
+    if (name.includes('treadmill') || name.includes('stairmaster') || name.includes('rowing') || name.includes('swimming')) {
+      return 30 // 30 minutes
+    }
+    
+    // Default
+    return 15 // 15 minutes
   }
 
   const getDefaultReps = (exercise: string) => {
