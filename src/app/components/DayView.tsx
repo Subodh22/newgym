@@ -195,18 +195,8 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
       console.log(`✅ Day ${currentDayNumber} in Week ${currentWeekNumber + 1} updated successfully with automatic progression!`)
       console.log('📊 Progressive overload result:', result)
       
-      // Show success message with details
-      const details = result.details || {}
-      alert(`🚀 Progressive overload applied! 
-      
-Day ${currentDayNumber} in Week ${currentWeekNumber + 1} has been updated with increased volume and intensity.
-
-📊 Details:
-• Workout: ${details.workoutName || workout.day_name}
-• Exercises Updated: ${details.exercisesUpdated || workout.exercises?.length || 0}
-• Week: ${details.weekNumber || currentWeekNumber + 1}
-
-Navigate to Week ${currentWeekNumber + 1} to see the changes!`)
+      // Progressive overload applied silently in background
+      console.log(`✅ Progressive overload applied silently for Day ${currentDayNumber} in Week ${currentWeekNumber + 1}`)
       
       // Refresh the data to show updated values
       console.log('🔄 Refreshing data to show updated progressive overload values...')

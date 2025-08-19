@@ -72,11 +72,10 @@ const calculateAdjustedSets = (muscleGroup: string, previousSetCount: number, fe
   
   // Start with previous week's set count
   let adjustedSets = previousSetCount || 3
+  let volumeAdjustment = 0 // Declare outside the if block
 
   const muscleFeedback = feedback.find(f => f.muscleGroup === muscleGroup)
   if (muscleFeedback) {
-    let volumeAdjustment = 0
-
     // RP Volume Progression based on feedback
     switch (muscleFeedback.difficulty) {
       case 'too_hard':
@@ -111,13 +110,13 @@ const calculateAdjustedSets = (muscleGroup: string, previousSetCount: number, fe
       volumeAdjustment = Math.max(volumeAdjustment, 1)
       console.log(`🚀 RP recovery adjustment: Increasing volume for ${muscleGroup} due to excellent recovery/pump`)
     }
-
-    adjustedSets += volumeAdjustment
   } else {
     // No feedback - apply conservative RP progression
-    adjustedSets += 1
+    volumeAdjustment = 1
     console.log(`📈 RP conservative progression: Adding 1 set for ${muscleGroup} (no feedback)`)
   }
+
+  adjustedSets += volumeAdjustment
 
   // Ensure we stay within RP volume landmarks
   return Math.max(minSets, Math.min(maxSets, adjustedSets))
@@ -291,6 +290,32 @@ export async function POST(request: NextRequest) {
     const defaultTrainingDays = trainingDays || 6
     const defaultSelectedSplit = selectedSplit || { 'Push': [], 'Pull': [], 'Legs': [] }
     const defaultWorkoutPlans = workoutPlans || {}
+
+    // Check if week number exceeds mesocycle's total weeks FIRST
+    const { data: mesocycle, error: mesocycleError } = await supabaseAdmin
+      .from('mesocycles')
+      .select('number_of_weeks, name')
+      .eq('id', mesocycleId)
+      .single()
+
+    if (mesocycleError || !mesocycle) {
+      console.error('❌ Failed to fetch mesocycle:', mesocycleError)
+      return NextResponse.json({
+        error: 'Failed to fetch mesocycle information'
+      }, { status: 500 })
+    }
+
+    if (weekNumber > mesocycle.number_of_weeks) {
+      console.log(`🎉 Mesocycle "${mesocycle.name}" completed! Week ${weekNumber} exceeds total weeks (${mesocycle.number_of_weeks})`)
+      return NextResponse.json({
+        success: true,
+        completed: true,
+        message: `Congratulations! You've completed all ${mesocycle.number_of_weeks} weeks of your "${mesocycle.name}" mesocycle!`,
+        mesocycleName: mesocycle.name,
+        totalWeeks: mesocycle.number_of_weeks,
+        completedWeeks: weekNumber - 1
+      }, { status: 200 })
+    }
 
     console.log(`🚀 Creating Week ${weekNumber} with autoregulation...`)
     console.log(`📊 Parameters: trainingDays=${defaultTrainingDays}, split=${Object.keys(defaultSelectedSplit).join(',')}`)
@@ -690,18 +715,40 @@ export async function POST(request: NextRequest) {
 
       console.log(`✅ Created workout: ${newWorkout.day_name}`)
 
+      // Calculate total sets per muscle group first (RP methodology)
+      const muscleGroupSets: { [key: string]: number } = {}
+      const exercisesByMuscleGroup: { [key: string]: any[] } = {}
+      
+      // Group exercises by muscle group and calculate total sets needed
+      for (const prevExercise of prevWorkout.exercises || []) {
+        const muscleGroup = getMuscleGroupFromExercise(prevExercise.name)
+        if (!exercisesByMuscleGroup[muscleGroup]) {
+          exercisesByMuscleGroup[muscleGroup] = []
+        }
+        exercisesByMuscleGroup[muscleGroup].push(prevExercise)
+      }
+      
+      // Calculate total sets per muscle group
+      for (const [muscleGroup, exercises] of Object.entries(exercisesByMuscleGroup)) {
+        const totalPreviousSets = exercises.reduce((sum, ex) => sum + (ex.sets?.length || 3), 0)
+        const totalAdjustedSets = calculateAdjustedSets(muscleGroup, totalPreviousSets, userFeedback || [])
+        muscleGroupSets[muscleGroup] = totalAdjustedSets
+        console.log(`📊 RP volume calculation: ${muscleGroup} - ${totalPreviousSets} → ${totalAdjustedSets} total sets`)
+      }
+      
       // Copy exercises with progressive overload
       for (const prevExercise of prevWorkout.exercises || []) {
         const muscleGroup = getMuscleGroupFromExercise(prevExercise.name)
-        const previousSetCount = prevExercise.sets?.length || 3
         const baseWeight = prevExercise.sets?.[0]?.weight || 0
         
-        // Apply progressive overload
-        const adjustedSets = calculateAdjustedSets(muscleGroup, previousSetCount, userFeedback || [])
+        // Distribute sets across exercises for this muscle group (RP methodology: 3-4 sets per exercise)
+        const exercisesInGroup = exercisesByMuscleGroup[muscleGroup].length
+        const setsPerExercise = Math.max(3, Math.min(4, Math.round(muscleGroupSets[muscleGroup] / exercisesInGroup)))
+        
         const progressiveWeight = calculateProgressiveWeight(baseWeight, weekNumber, userFeedback || [], muscleGroup, prevExercise.name)
         const targetReps = getTargetRepsForWeek(weekNumber, 8, userFeedback || [], muscleGroup, prevExercise.name)
         
-        console.log(`📈 Progressive overload for ${prevExercise.name}: ${previousSetCount} → ${adjustedSets} sets, ${baseWeight}kg → ${progressiveWeight}kg`)
+        console.log(`📈 RP exercise progression: ${prevExercise.name} - ${setsPerExercise} sets, ${baseWeight}kg → ${progressiveWeight}kg`)
 
         const { data: newExercise, error: exerciseError } = await supabaseAdmin
           .from('exercises')
@@ -719,7 +766,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Create sets with progressive overload
-        for (let setNum = 1; setNum <= adjustedSets; setNum++) {
+        for (let setNum = 1; setNum <= setsPerExercise; setNum++) {
           const { error: setError } = await supabaseAdmin
             .from('sets')
             .insert({
@@ -752,31 +799,7 @@ export async function POST(request: NextRequest) {
       }, { status: 200 })
     }
 
-    // Check if week number exceeds mesocycle's total weeks
-    const { data: mesocycle, error: mesocycleError } = await supabaseAdmin
-      .from('mesocycles')
-      .select('number_of_weeks, name')
-      .eq('id', mesocycleId)
-      .single()
 
-    if (mesocycleError || !mesocycle) {
-      console.error('❌ Failed to fetch mesocycle:', mesocycleError)
-      return NextResponse.json({
-        error: 'Failed to fetch mesocycle information'
-      }, { status: 500 })
-    }
-
-    if (weekNumber > mesocycle.number_of_weeks) {
-      console.log(`🎉 Mesocycle "${mesocycle.name}" completed! Week ${weekNumber} exceeds total weeks (${mesocycle.number_of_weeks})`)
-      return NextResponse.json({
-        success: true,
-        completed: true,
-        message: `Congratulations! You've completed all ${mesocycle.number_of_weeks} weeks of your "${mesocycle.name}" mesocycle!`,
-        mesocycleName: mesocycle.name,
-        totalWeeks: mesocycle.number_of_weeks,
-        completedWeeks: weekNumber - 1
-      }, { status: 200 })
-    }
 
     // Create the week
     const weekName = `Week ${weekNumber}`
