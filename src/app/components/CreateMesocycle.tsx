@@ -354,12 +354,28 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
   }
 
   const autoFillWorkoutType = (workoutType: string) => {
-    const muscleGroups = (TRAINING_SPLITS as any)[selectedSplit][workoutType]
+    let muscleGroups: string[]
+    
+    if (selectedTemplate && selectedTemplate !== 'Custom' && PREMADE_TEMPLATES[selectedTemplate as keyof typeof PREMADE_TEMPLATES]) {
+      const template = PREMADE_TEMPLATES[selectedTemplate as keyof typeof PREMADE_TEMPLATES]
+      muscleGroups = template.split[workoutType]?.muscleGroups || []
+    } else {
+      muscleGroups = (TRAINING_SPLITS as any)[selectedSplit][workoutType]
+    }
+    
     muscleGroups.forEach((mg: string) => autoFillMuscleGroup(workoutType, mg))
   }
 
   const autoFillEntirePlan = () => {
-    const workoutTypes = Object.keys(TRAINING_SPLITS[selectedSplit as keyof typeof TRAINING_SPLITS])
+    let workoutTypes: string[]
+    
+    if (selectedTemplate && selectedTemplate !== 'Custom' && PREMADE_TEMPLATES[selectedTemplate as keyof typeof PREMADE_TEMPLATES]) {
+      const template = PREMADE_TEMPLATES[selectedTemplate as keyof typeof PREMADE_TEMPLATES]
+      workoutTypes = Object.keys(template.split)
+    } else {
+      workoutTypes = Object.keys(TRAINING_SPLITS[selectedSplit as keyof typeof TRAINING_SPLITS])
+    }
+    
     workoutTypes.forEach((wt) => autoFillWorkoutType(wt))
   }
 
@@ -549,8 +565,18 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
       }
 
       // Create workouts for Week 1 only
-      const workoutTypes = Object.keys(TRAINING_SPLITS[selectedSplit as keyof typeof TRAINING_SPLITS])
-      const workoutsPerWeek = Math.ceil(trainingDays / workoutTypes.length)
+      let workoutTypes: string[]
+      let workoutsPerWeek: number
+      
+      // Use template split if a template is selected, otherwise use default split
+      if (selectedTemplate && selectedTemplate !== 'Custom' && PREMADE_TEMPLATES[selectedTemplate as keyof typeof PREMADE_TEMPLATES]) {
+        const template = PREMADE_TEMPLATES[selectedTemplate as keyof typeof PREMADE_TEMPLATES]
+        workoutTypes = Object.keys(template.split)
+        workoutsPerWeek = Math.ceil(trainingDays / workoutTypes.length)
+      } else {
+        workoutTypes = Object.keys(TRAINING_SPLITS[selectedSplit as keyof typeof TRAINING_SPLITS])
+        workoutsPerWeek = Math.ceil(trainingDays / workoutTypes.length)
+      }
 
       setLoadingMessage('Generating workouts...')
       for (let day = 1; day <= trainingDays; day++) {
@@ -753,7 +779,18 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
   )
 
   const renderStep2 = () => {
-    const workoutTypes = Object.keys(TRAINING_SPLITS[selectedSplit as keyof typeof TRAINING_SPLITS])
+    // Use template split if a template is selected, otherwise use default split
+    let workoutTypes: string[]
+    let muscleGroupsMap: any
+    
+    if (selectedTemplate && selectedTemplate !== 'Custom' && PREMADE_TEMPLATES[selectedTemplate as keyof typeof PREMADE_TEMPLATES]) {
+      const template = PREMADE_TEMPLATES[selectedTemplate as keyof typeof PREMADE_TEMPLATES]
+      workoutTypes = Object.keys(template.split)
+      muscleGroupsMap = template.split
+    } else {
+      workoutTypes = Object.keys(TRAINING_SPLITS[selectedSplit as keyof typeof TRAINING_SPLITS])
+      muscleGroupsMap = TRAINING_SPLITS[selectedSplit as keyof typeof TRAINING_SPLITS]
+    }
 
     return (
       <div className="space-y-6">
@@ -762,6 +799,11 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <h3 className="text-lg font-medium">Exercise Selection</h3>
+          {selectedTemplate && selectedTemplate !== 'Custom' && (
+            <Badge variant="outline" className="ml-2">
+              {selectedTemplate}
+            </Badge>
+          )}
         </div>
 
         <div className="flex gap-2">
@@ -771,7 +813,7 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
         </div>
 
         {workoutTypes.map(workoutType => {
-          const muscleGroups = (TRAINING_SPLITS as any)[selectedSplit][workoutType]
+          const muscleGroups = muscleGroupsMap[workoutType]?.muscleGroups || muscleGroupsMap[workoutType]
           
           return (
             <Card key={workoutType}>
