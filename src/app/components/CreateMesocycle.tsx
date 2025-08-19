@@ -304,9 +304,9 @@ const PREMADE_TEMPLATES = {
     }
   },
   'Sam Sulek - High Volume Bodybuilding': {
-    description: 'Sam Sulek\'s intense high-volume bodybuilding program with failure-based training and minimal rest',
+    description: 'Sam Sulek\'s intense 7-day high-volume bodybuilding program with failure-based training and minimal rest',
     weeks: 4,
-    trainingDays: 4,
+    trainingDays: 7,
     split: {
       'Chest & Shoulders': {
         exercises: [
