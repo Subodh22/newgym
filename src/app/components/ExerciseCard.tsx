@@ -8,7 +8,7 @@ import { Input } from './ui/input'
 import { Check, Plus, X } from 'lucide-react'
 import { updateSet, createSet, deleteSet } from '@/lib/supabase/database'
 import { ExerciseFeedback } from './ExerciseFeedback'
-import { getExerciseVideoUrl, toYouTubeEmbed } from '@/app/lib/exerciseVideos'
+import { getExerciseVideoUrl, toYouTubeEmbed, setCustomExerciseVideoUrl } from '@/app/lib/exerciseVideos'
 
 interface Set {
   id: number
@@ -62,6 +62,11 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
   const [isRestPaused, setIsRestPaused] = useState(false)
   const restPausedRef = useRef(false)
   const [showVideo, setShowVideo] = useState(false)
+  const [videoUrl, setVideoUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    setVideoUrl(getExerciseVideoUrl(exercise.name))
+  }, [exercise.name])
 
   useEffect(() => {
     restPausedRef.current = isRestPaused
@@ -255,8 +260,16 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
   }
 
   const sortedSets = [...exercise.sets].sort((a, b) => a.set_number - b.set_number)
-  const tutorialUrl = getExerciseVideoUrl(exercise.name)
-  const embedUrl = tutorialUrl ? toYouTubeEmbed(tutorialUrl) : null
+  const embedUrl = videoUrl ? toYouTubeEmbed(videoUrl) : null
+
+  const handleAttachVideo = () => {
+    const url = window.prompt('Paste the YouTube video URL for this exercise:')
+    if (url && url.trim()) {
+      setCustomExerciseVideoUrl(exercise.name, url.trim())
+      setVideoUrl(url.trim())
+      setShowVideo(true)
+    }
+  }
 
   return (
     <Card className="w-full">
@@ -284,6 +297,7 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
             {embedUrl && (
               <Button variant="outline" size="sm" onClick={() => setShowVideo(true)} className="h-8 px-2">Play</Button>
             )}
+            <Button variant="ghost" size="sm" onClick={handleAttachVideo} className="h-8 px-2">Attach Video</Button>
             {onDeleteExercise && (
               <Button
                 variant="ghost"

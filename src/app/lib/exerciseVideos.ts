@@ -27,7 +27,32 @@ const RULES: VideoRule[] = [
 
 const PLAYLIST_URL = `https://www.youtube.com/playlist?list=${PLAYLIST_ID}`
 
+function getOverrides(): Record<string, string> {
+  if (typeof window === 'undefined') return {}
+  try {
+    const raw = window.localStorage.getItem('exerciseVideoOverrides')
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+export function setCustomExerciseVideoUrl(exerciseName: string, url: string) {
+  if (typeof window === 'undefined') return
+  try {
+    const overrides = getOverrides()
+    overrides[exerciseName] = url
+    window.localStorage.setItem('exerciseVideoOverrides', JSON.stringify(overrides))
+  } catch {
+    // ignore
+  }
+}
+
 export function getExerciseVideoUrl(exerciseName: string): string | null {
+  // 1) User override wins
+  const overrides = getOverrides()
+  if (overrides[exerciseName]) return overrides[exerciseName]
+
   const name = (exerciseName || '').toLowerCase()
   for (const rule of RULES) {
     if (rule.keywords.some(k => name.includes(k))) {
