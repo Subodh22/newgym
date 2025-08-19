@@ -908,8 +908,8 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
                       {style.icon}
                     </div>
                     <div>
-                      <CardTitle className="text-base font-bold text-gray-900">{templateName.split(' - ')[1]}</CardTitle>
-                      <p className="text-xs text-gray-500 font-medium">{templateName.split(' - ')[0]}</p>
+                      <CardTitle className="text-base font-bold text-gray-900">{templateName.split(' - ')[0]}</CardTitle>
+                      <p className="text-xs text-gray-500 font-medium">{templateName.split(' - ')[1]}</p>
                     </div>
                   </div>
                   <p className="text-sm text-gray-600 leading-relaxed">{template.description}</p>
