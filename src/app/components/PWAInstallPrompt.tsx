@@ -47,7 +47,7 @@ export default function PWAInstallPrompt() {
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <h3 className="text-sm font-semibold text-gray-900">
-            Install Astronaut Fitness
+            Install BaliyoBan
           </h3>
           <p className="text-xs text-gray-600 mt-1">
             Install this fitness app on your device for quick and easy access

@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-// Create the astronaut fitness icon SVG
+// Create the BaliyoBan icon SVG
 const createAstronautIcon = (size) => {
   return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
   <defs>
@@ -97,5 +97,5 @@ const safariIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
 fs.writeFileSync(path.join(iconsDir, 'safari-pinned-tab.svg'), safariIcon);
 console.log('Created safari-pinned-tab.svg');
 
-console.log('\nAstronaut fitness PWA icons generated successfully!');
+console.log('\nBaliyoBan PWA icons generated successfully!');
 console.log('The icons feature a gradient background with a white astronaut holding a barbell.');

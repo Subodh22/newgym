@@ -30,16 +30,6 @@ export default function MesocycleDetail({ mesocycle, onClose, onUpdate }: Mesocy
     }
   }
 
-  if (selectedWorkout) {
-    return (
-      <DayView
-        workout={selectedWorkout}
-        onBack={() => setSelectedWorkout(null)}
-        onUpdate={onUpdate}
-      />
-    )
-  }
-
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
       <div className="relative top-10 mx-auto p-5 border w-11/12 md:w-4/5 lg:w-3/4 xl:w-2/3 shadow-lg rounded-md bg-white max-h-[90vh] overflow-y-auto">
@@ -97,66 +87,64 @@ export default function MesocycleDetail({ mesocycle, onClose, onUpdate }: Mesocy
           </div>
         </div>
 
-        {/* Weeks List */}
+        {/* Content */}
         <div className="space-y-4">
-          <h3 className="text-lg font-medium text-gray-900">Weeks</h3>
-          
-          {mesocycle.weeks && mesocycle.weeks.length > 0 ? (
-            <div className="grid gap-4">
-              {mesocycle.weeks.map((week: any) => (
-                <div key={week.id} className="bg-white border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium text-gray-900">{week.name}</h4>
-                    <span className="text-sm text-gray-500">
-                      Week {week.week_number}
-                    </span>
-                  </div>
-                  
-                  {/* Workouts in this week */}
-                  <div className="space-y-2">
-                    {week.workouts && week.workouts.length > 0 ? (
-                      week.workouts.map((workout: any) => (
-                        <div
-                          key={workout.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 transition-colors"
-                          onClick={() => setSelectedWorkout(workout)}
-                        >
-                          <div className="flex items-center">
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-gray-900">
-                                {workout.day_name}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {workout.exercises?.length || 0} exercises
-                              </p>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center space-x-2">
-                            {workout.is_completed && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                Completed
-                              </span>
-                            )}
-                            <ChevronRight className="h-4 w-4 text-gray-400" />
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-gray-500 italic">No workouts in this week</p>
-                    )}
-                  </div>
-                </div>
-              ))}
+          {selectedWorkout ? (
+            <div className="-mx-5 -mb-5">
+              <DayView
+                workout={selectedWorkout}
+                onBack={() => setSelectedWorkout(null)}
+                onUpdate={onUpdate}
+              />
             </div>
           ) : (
-            <div className="text-center py-8">
-              <Calendar className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No weeks found</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                This mesocycle doesn&apos;t have any weeks yet.
-              </p>
-            </div>
+            <>
+              <h3 className="text-lg font-medium text-gray-900">Weeks</h3>
+              {mesocycle.weeks && mesocycle.weeks.length > 0 ? (
+                <div className="grid gap-4">
+                  {mesocycle.weeks.map((week: any) => (
+                    <div key={week.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-medium text-gray-900">{week.name}</h4>
+                        <span className="text-sm text-gray-500">Week {week.week_number}</span>
+                      </div>
+                      <div className="space-y-2">
+                        {week.workouts && week.workouts.length > 0 ? (
+                          week.workouts.map((workout: any) => (
+                            <div
+                              key={workout.id}
+                              className="flex items-center justify-between p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 transition-colors"
+                              onClick={() => setSelectedWorkout(workout)}
+                            >
+                              <div className="flex items-center">
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-gray-900">{workout.day_name}</p>
+                                  <p className="text-xs text-gray-500">{workout.exercises?.length || 0} exercises</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                {workout.is_completed && (
+                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Completed</span>
+                                )}
+                                <ChevronRight className="h-4 w-4 text-gray-400" />
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-gray-500 italic">No workouts in this week</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Calendar className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No weeks found</h3>
+                  <p className="mt-1 text-sm text-gray-500">This mesocycle doesn&apos;t have any weeks yet.</p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

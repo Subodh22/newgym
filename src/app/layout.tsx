@@ -36,10 +36,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <meta name="application-name" content="Astronaut Fitness" />
+        <meta name="application-name" content="BaliyoBan" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="AstroFit" />
+        <meta name="apple-mobile-web-app-title" content="BaliyoBan" />
         <meta name="description" content="Your personal fitness companion - train like an astronaut" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
@@ -57,14 +57,14 @@ export default function RootLayout({
 
         <meta name="twitter:card" content="summary" />
         <meta name="twitter:url" content="https://your-domain.com" />
-        <meta name="twitter:title" content="Astronaut Fitness" />
+        <meta name="twitter:title" content="" />
         <meta name="twitter:description" content="Your personal fitness companion - train like an astronaut" />
         <meta name="twitter:image" content="https://your-domain.com/icons/icon-192x192.png" />
         <meta name="twitter:creator" content="@yourusername" />
         <meta property="og:type" content="website" />
-        <meta property="og:title" content="Astronaut Fitness" />
+        <meta property="og:title" content="BaliyoBan" />
         <meta property="og:description" content="Your personal fitness companion - train like an astronaut" />
-        <meta property="og:site_name" content="Astronaut Fitness" />
+        <meta property="og:site_name" content="BaliyoBan" />
         <meta property="og:url" content="https://your-domain.com" />
         <meta property="og:image" content="https://your-domain.com/icons/icon-192x192.png" />
       </head>
