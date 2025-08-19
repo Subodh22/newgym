@@ -727,10 +727,20 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
       let workoutsPerWeek: number
       
       // Use template split if a template is selected, otherwise use default split
-      if (selectedTemplate && selectedTemplate !== 'Custom' && PREMADE_TEMPLATES[selectedTemplate as keyof typeof PREMADE_TEMPLATES]) {
+      let workoutTypes: string[]
+      let workoutsPerWeek: number
+      
+      if (selectedTemplate && selectedTemplate !== 'Custom') {
         const template = PREMADE_TEMPLATES[selectedTemplate as keyof typeof PREMADE_TEMPLATES]
-        workoutTypes = Object.keys(template.split)
-        workoutsPerWeek = Math.ceil(trainingDays / workoutTypes.length)
+        if (template && template.split) {
+          workoutTypes = Object.keys(template.split)
+          workoutsPerWeek = Math.ceil(trainingDays / workoutTypes.length)
+        } else {
+          // Fallback to default split if template is invalid
+          console.warn('Invalid template selected, falling back to default split')
+          workoutTypes = Object.keys(TRAINING_SPLITS[selectedSplit as keyof typeof TRAINING_SPLITS])
+          workoutsPerWeek = Math.ceil(trainingDays / workoutTypes.length)
+        }
       } else {
         workoutTypes = Object.keys(TRAINING_SPLITS[selectedSplit as keyof typeof TRAINING_SPLITS])
         workoutsPerWeek = Math.ceil(trainingDays / workoutTypes.length)
@@ -772,11 +782,14 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
 
           // Create sets for Week 1 only
           for (let setNum = 1; setNum <= setsCount; setNum++) {
+            const isTimeBased = isTimeBasedExercise(exerciseName)
+            
             const { error: setError } = await createSet({
               exercise_id: exercise.id,
               set_number: setNum,
               weight: (exerciseData as any).weight || 0,
-              reps: parseInt((exerciseData as any).reps.split('-')[0]) || 8,
+              reps: isTimeBased ? null : ((exerciseData as any).reps ? parseInt((exerciseData as any).reps.split('-')[0]) || 8 : 8),
+              duration: isTimeBased ? ((exerciseData as any).duration || 15) * 60 : null, // Convert minutes to seconds
               is_completed: false
             })
 
