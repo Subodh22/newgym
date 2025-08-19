@@ -14,6 +14,8 @@ interface Set {
   set_number: number
   weight: number | null
   reps: number | null
+  duration: number | null
+  distance: number | null
   is_completed: boolean
   notes?: string | null
 }
@@ -36,9 +38,20 @@ interface ExerciseCardProps {
   onDeleteExercise?: (exerciseId: number) => void
 }
 
+// Helper function to determine if an exercise is time-based
+const isTimeBasedExercise = (exerciseName: string): boolean => {
+  const timeBasedExercises = [
+    'Treadmill Running', 'Elliptical', 'Stairmaster', 'Rowing Machine', 'Cycling',
+    'Jump Rope', 'Burpees', 'Mountain Climbers', 'High Knees', 'Jumping Jacks',
+    'Battle Ropes', 'Assault Bike', 'Concept2 Rower', 'Stair Climber',
+    'Incline Walking', 'Sprint Intervals', 'Steady State Cardio'
+  ]
+  return timeBasedExercises.includes(exerciseName)
+}
+
 export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: ExerciseCardProps) {
   const [loading, setLoading] = useState(false)
-  const [localSetValues, setLocalSetValues] = useState<{[key: number]: {weight?: number, reps?: number}}>({})
+  const [localSetValues, setLocalSetValues] = useState<{[key: number]: {weight?: number, reps?: number, duration?: number}}>({})
   const [showFeedback, setShowFeedback] = useState(false)
   const [feedbackLoading, setFeedbackLoading] = useState(false)
   const [showRestTimer, setShowRestTimer] = useState(false)
@@ -124,7 +137,7 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
     }
   }
 
-  const handleLocalUpdate = (setId: number, field: 'weight' | 'reps', value: number) => {
+  const handleLocalUpdate = (setId: number, field: 'weight' | 'reps' | 'duration' | 'distance', value: number) => {
     setLocalSetValues(prev => ({
       ...prev,
       [setId]: {
@@ -134,7 +147,7 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
     }))
   }
 
-  const saveSetValue = async (setId: number, field: 'weight' | 'reps') => {
+  const saveSetValue = async (setId: number, field: 'weight' | 'reps' | 'duration' | 'distance') => {
     const localValue = localSetValues[setId]?.[field]
     if (localValue !== undefined) {
       await handleSetUpdate(setId, field, localValue)
@@ -152,7 +165,7 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
     }
   }
 
-  const getDisplayValue = (set: Set, field: 'weight' | 'reps') => {
+  const getDisplayValue = (set: Set, field: 'weight' | 'reps' | 'duration' | 'distance') => {
     const localValue = localSetValues[set.id]?.[field]
     return localValue !== undefined ? localValue : (set[field] || 0)
   }
@@ -162,14 +175,27 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
     try {
       const lastSet = exercise.sets[exercise.sets.length - 1]
       const newSetNumber = exercise.sets.length + 1
+      const isTimeBased = isTimeBasedExercise(exercise.name)
       
-      const { error } = await createSet({
+      const setData: any = {
         exercise_id: exercise.id,
         set_number: newSetNumber,
-        weight: lastSet?.weight || 0,
-        reps: lastSet?.reps || 8,
         is_completed: false
-      })
+      }
+
+      if (isTimeBased) {
+        setData.duration = lastSet?.duration || 600 // 10 minutes default
+        setData.distance = lastSet?.distance || 0
+        setData.weight = null
+        setData.reps = null
+      } else {
+        setData.weight = lastSet?.weight || 0
+        setData.reps = lastSet?.reps || 8
+        setData.duration = null
+        setData.distance = null
+      }
+      
+      const { error } = await createSet(setData)
       
       if (error) throw error
       onUpdateExercise()
@@ -276,8 +302,17 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
         <div className="space-y-2">
           <div className="grid grid-cols-12 gap-2 text-sm font-medium text-gray-500 pb-2 border-b border-gray-200">
             <span className="col-span-2">Set</span>
-            <span className="col-span-3">Weight</span>
-            <span className="col-span-3">Reps</span>
+            {isTimeBasedExercise(exercise.name) ? (
+              <>
+                <span className="col-span-3">Duration</span>
+                <span className="col-span-3">Distance</span>
+              </>
+            ) : (
+              <>
+                <span className="col-span-3">Weight</span>
+                <span className="col-span-3">Reps</span>
+              </>
+            )}
             <span className="col-span-4 text-right pr-5">Status</span>
           </div>
           
@@ -285,38 +320,80 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
             <div key={set.id} className="grid grid-cols-12 gap-2 items-center">
               <span className="col-span-2 text-sm font-medium">{set.set_number}</span>
               
-              <div className="col-span-3 flex items-center">
-                <Input
-                  type="number"
-                  step="0.5"
-                  value={getDisplayValue(set, 'weight')}
-                  onChange={(e) => handleLocalUpdate(set.id, 'weight', parseFloat(e.target.value) || 0)}
-                  onBlur={() => saveSetValue(set.id, 'weight')}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      saveSetValue(set.id, 'weight')
-                      e.currentTarget.blur()
-                    }
-                  }}
-                  className="h-8 text-center w-full border-dashed border-gray-300 hover:border-blue-400 focus:border-blue-500"
-                />
-              </div>
-              
-              <div className="col-span-3 flex items-center">
-                <Input
-                  type="number"
-                  value={getDisplayValue(set, 'reps')}
-                  onChange={(e) => handleLocalUpdate(set.id, 'reps', parseInt(e.target.value) || 0)}
-                  onBlur={() => saveSetValue(set.id, 'reps')}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      saveSetValue(set.id, 'reps')
-                      e.currentTarget.blur()
-                    }
-                  }}
-                  className="h-8 text-center w-full border-dashed border-gray-300 hover:border-blue-400 focus:border-blue-500"
-                />
-              </div>
+              {isTimeBasedExercise(exercise.name) ? (
+                <>
+                  <div className="col-span-3 flex items-center">
+                    <Input
+                      type="number"
+                      step="30"
+                      placeholder="Seconds"
+                      value={getDisplayValue(set, 'duration')}
+                      onChange={(e) => handleLocalUpdate(set.id, 'duration', parseInt(e.target.value) || 0)}
+                      onBlur={() => saveSetValue(set.id, 'duration')}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          saveSetValue(set.id, 'duration')
+                          e.currentTarget.blur()
+                        }
+                      }}
+                      className="h-8 text-center w-full border-dashed border-gray-300 hover:border-blue-400 focus:border-blue-500"
+                    />
+                  </div>
+                  
+                  <div className="col-span-3 flex items-center">
+                    <Input
+                      type="number"
+                      step="0.1"
+                      placeholder="Meters"
+                      value={getDisplayValue(set, 'distance')}
+                      onChange={(e) => handleLocalUpdate(set.id, 'distance', parseFloat(e.target.value) || 0)}
+                      onBlur={() => saveSetValue(set.id, 'distance')}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          saveSetValue(set.id, 'distance')
+                          e.currentTarget.blur()
+                        }
+                      }}
+                      className="h-8 text-center w-full border-dashed border-gray-300 hover:border-blue-400 focus:border-blue-500"
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="col-span-3 flex items-center">
+                    <Input
+                      type="number"
+                      step="0.5"
+                      value={getDisplayValue(set, 'weight')}
+                      onChange={(e) => handleLocalUpdate(set.id, 'weight', parseFloat(e.target.value) || 0)}
+                      onBlur={() => saveSetValue(set.id, 'weight')}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          saveSetValue(set.id, 'weight')
+                          e.currentTarget.blur()
+                        }
+                      }}
+                      className="h-8 text-center w-full border-dashed border-gray-300 hover:border-blue-400 focus:border-blue-500"
+                    />
+                  </div>
+                  
+                  <div className="col-span-3 flex items-center">
+                    <Input
+                      type="number"
+                      value={getDisplayValue(set, 'reps')}
+                      onChange={(e) => handleLocalUpdate(set.id, 'reps', parseInt(e.target.value) || 0)}
+                      onBlur={() => saveSetValue(set.id, 'reps')}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          saveSetValue(set.id, 'reps')
+                          e.currentTarget.blur()
+                        }
+                      }}
+                      className="h-8 text-center w-full border-dashed border-gray-300 hover:border-blue-400 focus:border-blue-500"
+                    />
+                  </div>
+                </>
+              )}
               
               <div className="col-span-4 flex items-center gap-1 justify-end pr-1">
                 <Button
