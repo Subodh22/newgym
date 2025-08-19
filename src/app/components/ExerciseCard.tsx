@@ -8,6 +8,7 @@ import { Input } from './ui/input'
 import { Check, Plus, X } from 'lucide-react'
 import { updateSet, createSet, deleteSet } from '@/lib/supabase/database'
 import { ExerciseFeedback } from './ExerciseFeedback'
+import { getExerciseVideoUrl, toYouTubeEmbed } from '@/app/lib/exerciseVideos'
 
 interface Set {
   id: number
@@ -60,6 +61,7 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
   const restIntervalIdRef = useRef<number | null>(null)
   const [isRestPaused, setIsRestPaused] = useState(false)
   const restPausedRef = useRef(false)
+  const [showVideo, setShowVideo] = useState(false)
 
   useEffect(() => {
     restPausedRef.current = isRestPaused
@@ -253,6 +255,8 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
   }
 
   const sortedSets = [...exercise.sets].sort((a, b) => a.set_number - b.set_number)
+  const tutorialUrl = getExerciseVideoUrl(exercise.name)
+  const embedUrl = tutorialUrl ? toYouTubeEmbed(tutorialUrl) : null
 
   return (
     <Card className="w-full">
@@ -276,16 +280,21 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
               )}
             </div>
           </div>
-          {onDeleteExercise && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onDeleteExercise(exercise.id)}
-              className="text-red-500 hover:text-red-700 hover:bg-red-50"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {embedUrl && (
+              <Button variant="outline" size="sm" onClick={() => setShowVideo(true)} className="h-8 px-2">Play</Button>
+            )}
+            {onDeleteExercise && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onDeleteExercise(exercise.id)}
+                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
         {exercise.rir_description && (
           <p className="text-sm text-blue-600 font-medium">{exercise.rir_description}</p>
@@ -447,6 +456,29 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
             onSkip={handleFeedbackSkip}
             loading={feedbackLoading}
           />
+        </div>
+      )}
+
+      {/* Tutorial Video Modal */}
+      {showVideo && embedUrl && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowVideo(false)}>
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b">
+              <h3 className="text-sm font-medium">Tutorial • {exercise.name}</h3>
+              <button className="text-gray-500 hover:text-gray-700" onClick={() => setShowVideo(false)}>
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="aspect-video w-full">
+              <iframe
+                className="w-full h-full"
+                src={embedUrl}
+                title={`Tutorial ${exercise.name}`}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            </div>
+          </div>
         </div>
       )}
 
