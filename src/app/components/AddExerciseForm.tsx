@@ -45,7 +45,26 @@ const commonExercises = [
   'Calf Raises',
   'Hip Thrusts',
   'Lunges',
-  'Step-ups'
+  'Step-ups',
+  
+  // Cardio exercises
+  'Treadmill Running',
+  'Elliptical',
+  'Stairmaster',
+  'Rowing Machine',
+  'Cycling',
+  'Jump Rope',
+  'Burpees',
+  'Mountain Climbers',
+  'High Knees',
+  'Jumping Jacks',
+  'Battle Ropes',
+  'Assault Bike',
+  'Concept2 Rower',
+  'Stair Climber',
+  'Incline Walking',
+  'Sprint Intervals',
+  'Steady State Cardio'
 ]
 
 export function AddExerciseForm({ workoutId, onExerciseAdded, onCancel }: AddExerciseFormProps) {
