@@ -58,7 +58,8 @@ const EXERCISE_DATABASE = {
     'Chest-Supported Row', 'Machine Row', 'Cable Rows', 'Straight-Arm Pulldown',
     'Face Pulls', 'Shrugs', 'Weighted Pull-up', 'Wide-Grip Lat Pulldown',
     'Seated Face Pull', 'Cable Pull-Through', 'Bent-Over Barbell Rows',
-    'Single-Arm Pulldown', 'Cable Lat Pulldown', 'Seated Cable Rows'
+    'Single-Arm Pulldown', 'Cable Lat Pulldown', 'Seated Cable Rows',
+    'Back Extensions'
   ],
   'Shoulders': [
     'Overhead Press', 'Seated Barbell Press', 'Dumbbell Shoulder Press',
@@ -79,7 +80,7 @@ const EXERCISE_DATABASE = {
   'Quadriceps': [
     'Back Squat', 'Front Squat', 'High-Bar Squat', 'Hack Squat', 'Leg Press',
     'Bulgarian Split Squats', 'Leg Extensions', 'Lunges', 'Walking Lunges',
-    'Step-ups', 'Sissy Squats', 'Pin Squat', 'Unilateral Leg Press',
+    'Reverse Lunges', 'Goblet Squats', 'Step-ups', 'Sissy Squats', 'Pin Squat', 'Unilateral Leg Press',
     'Single-Leg Leg Extensions', 'Heel-Elevated Back Squats'
   ],
   'Hamstrings': [
@@ -91,6 +92,7 @@ const EXERCISE_DATABASE = {
   ],
   'Glutes': [
     'Hip Thrusts', 'Barbell Hip Thrusts', 'Hip Thrust Machine',
+    'Glute Drive Machine', 'KAS Glute Bridge', 'Hip Abduction',
     'Bulgarian Split Squats', 'Romanian Deadlift', 'Glute Bridges',
     'Cable Kickbacks', 'Step-ups', 'Sumo Squat', 'Cossack Squats'
   ],
@@ -102,7 +104,8 @@ const EXERCISE_DATABASE = {
   'Abs': [
     'Crunches', 'Planks', 'Russian Twists', 'Leg Raises', 'Bicycle Crunches',
     'Mountain Climbers', 'L-Sit Hold', 'Weighted Crunch', 'Cable Crunch',
-    'Long-Lever Plank', 'Wall Slide', 'Hip Abduction'
+    'Long-Lever Plank', 'Wall Slide', 'Hip Abduction',
+    'V-Ups', 'Kick-outs', 'Supported In/Out'
   ],
   'Cardio': [
     'Treadmill Running', 'Elliptical', 'Stairmaster', 'Rowing Machine', 'Cycling',
@@ -128,6 +131,78 @@ const MIKE_ISRAETEL_TOP_10 = {
 
 // Pre-made templates based on popular influencers
 const PREMADE_TEMPLATES = {
+  'Nicole - Hybrid Body Recomp': {
+    description: 'Nicole\'s hybrid pull/glutes/chest/quads/cardio-abs rotation with progressive volume and steady-state cardio',
+    weeks: 4,
+    trainingDays: 6,
+    split: {
+      'Pull (Back + Biceps)': {
+        exercises: [
+          'Pull-ups',
+          'Wide-Grip Lat Pulldown',
+          'Barbell Rows',
+          'Face Pulls',
+          'EZ-Bar Curls',
+          'Bicep Curls',
+          'Back Extensions'
+        ],
+        muscleGroups: ['Back', 'Biceps']
+      },
+      'Glutes + Hamstrings': {
+        exercises: [
+          'Glute Drive Machine',
+          'Split Squat',
+          'Stiff-Leg Deadlift',
+          'Hip Abduction',
+          'Cable Kickbacks'
+        ],
+        muscleGroups: ['Glutes', 'Hamstrings']
+      },
+      'Chest, Shoulders + Triceps': {
+        exercises: [
+          'Incline Dumbbell Press',
+          'Cable Chest Flys',
+          'Overhead Press',
+          'Lateral Raises',
+          'Tricep Pushdowns'
+        ],
+        muscleGroups: ['Chest', 'Shoulders', 'Triceps']
+      },
+      'Quads + Calves': {
+        exercises: [
+          'Goblet Squats',
+          'Reverse Lunges',
+          'Leg Extension Dropset',
+          'Standing Calf Raises',
+          'Hip Adductor'
+        ],
+        muscleGroups: ['Quadriceps', 'Calves']
+      },
+      'Cardio + Abs': {
+        exercises: [
+          'Stairmaster',
+          'V-Ups (10 Reps)',
+          'Kick-outs (10 Reps)',
+          'Mountain Climbers (30 Reps)',
+          'Burpees (10 Reps)'
+        ],
+        muscleGroups: ['Cardio', 'Abs']
+      }
+    },
+    volumeLandmarks: {
+      'Back': { MEV: 10, MAV: 16, MRV: 22 },
+      'Biceps': { MEV: 6, MAV: 12, MRV: 18 },
+      'Glutes': { MEV: 8, MAV: 14, MRV: 20 },
+      'Hamstrings': { MEV: 6, MAV: 12, MRV: 18 },
+      'Chest': { MEV: 8, MAV: 14, MRV: 20 },
+      'Shoulders': { MEV: 8, MAV: 14, MRV: 20 },
+      'Triceps': { MEV: 6, MAV: 12, MRV: 18 },
+      'Quadriceps': { MEV: 8, MAV: 14, MRV: 20 },
+      'Calves': { MEV: 8, MAV: 16, MRV: 24 },
+      'Abs': { MEV: 6, MAV: 12, MRV: 18 },
+      'Cardio': { MEV: 2, MAV: 4, MRV: 6 }
+    }
+  },
   'Mike Israetel - RP Hypertrophy': {
     description: 'Dr. Mike Israetel\'s evidence-based 4-week mesocycle for optimal muscle growth',
     weeks: 4,
