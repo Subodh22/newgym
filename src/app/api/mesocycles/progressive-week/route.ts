@@ -50,6 +50,17 @@ const getBasicExercisesForWorkoutType = (workoutType: string): string[] => {
   }
 }
 
+// Helper function to determine if an exercise is time-based
+const isTimeBasedExercise = (exerciseName: string): boolean => {
+  const timeBasedExercises = [
+    'Treadmill Running', 'Elliptical', 'Stairmaster', 'Rowing Machine', 'Cycling',
+    'Jump Rope', 'Burpees', 'Mountain Climbers', 'High Knees', 'Jumping Jacks',
+    'Battle Ropes', 'Assault Bike', 'Concept2 Rower', 'Stair Climber',
+    'Incline Walking', 'Sprint Intervals', 'Steady State Cardio'
+  ]
+  return timeBasedExercises.includes(exerciseName)
+}
+
 // Helper function to get muscle group from exercise name
 const getMuscleGroupFromExercise = (exerciseName: string): string => {
   const name = exerciseName.toLowerCase()
@@ -63,6 +74,12 @@ const getMuscleGroupFromExercise = (exerciseName: string): string => {
   if (name.includes('calf')) return 'Calves'
   if (name.includes('crunch') || name.includes('plank') || name.includes('sit') || name.includes('abs')) return 'Abs'
   if (name.includes('glute') || name.includes('hip')) return 'Glutes'
+  if (name.includes('treadmill') || name.includes('elliptical') || name.includes('stairmaster') || 
+      name.includes('rowing') || name.includes('cycling') || name.includes('jump') || 
+      name.includes('burpee') || name.includes('climber') || name.includes('knee') || 
+      name.includes('jack') || name.includes('battle') || name.includes('assault') || 
+      name.includes('concept') || name.includes('stair') || name.includes('incline') || 
+      name.includes('sprint') || name.includes('steady') || name.includes('cardio')) return 'Cardio'
   return 'Other'
 }
 
@@ -769,15 +786,32 @@ export async function POST(request: NextRequest) {
 
         // Create sets with progressive overload
         for (let setNum = 1; setNum <= setsPerExercise; setNum++) {
+          const isTimeBased = isTimeBasedExercise(prevExercise.name)
+          
+          const setData: any = {
+            exercise_id: newExercise.id,
+            set_number: setNum,
+            is_completed: false
+          }
+
+          if (isTimeBased) {
+            // For time-based exercises, use duration with progressive overload
+            const baseDuration = prevExercise.sets?.[0]?.duration || 600 // 10 minutes default
+            const progressiveDuration = Math.round(baseDuration * (1 + (weekNumber - 1) * 0.05)) // 5% increase per week
+            setData.duration = progressiveDuration
+            setData.weight = null
+            setData.reps = null
+            console.log(`⏱️ Time-based progression: ${prevExercise.name} - ${baseDuration}s → ${progressiveDuration}s`)
+          } else {
+            // For regular exercises, use weight and reps
+            setData.weight = progressiveWeight
+            setData.reps = targetReps
+            setData.duration = null
+          }
+
           const { error: setError } = await supabaseAdmin
             .from('sets')
-            .insert({
-              exercise_id: newExercise.id,
-              set_number: setNum,
-              weight: progressiveWeight,
-              reps: targetReps,
-              is_completed: false
-            })
+            .insert(setData)
 
           if (setError) {
             console.error(`❌ Failed to create set: ${setError.message}`)

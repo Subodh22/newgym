@@ -28,7 +28,18 @@ const VOLUME_LANDMARKS = {
   'Hamstrings': { MEV: 6, MAV: 13, MRV: 20 },
   'Glutes': { MEV: 6, MAV: 12, MRV: 16 },
   'Calves': { MEV: 8, MAV: 16, MRV: 25 },
-  'Cardio': { MEV: 2, MAV: 4, MRV: 6 } // Cardio sessions per week
+  'Cardio': { MEV: 2, MAV: 4, MRV: 6 }
+}
+
+// Helper function to determine if an exercise is time-based
+const isTimeBasedExercise = (exerciseName: string): boolean => {
+  const timeBasedExercises = [
+    'Treadmill Running', 'Elliptical', 'Stairmaster', 'Rowing Machine', 'Cycling',
+    'Jump Rope', 'Burpees', 'Mountain Climbers', 'High Knees', 'Jumping Jacks',
+    'Battle Ropes', 'Assault Bike', 'Concept2 Rower', 'Stair Climber',
+    'Incline Walking', 'Sprint Intervals', 'Steady State Cardio'
+  ]
+  return timeBasedExercises.includes(exerciseName)
 }
 
 // Exercise database organized by muscle group
@@ -94,10 +105,10 @@ const EXERCISE_DATABASE = {
     'Long-Lever Plank', 'Wall Slide', 'Hip Abduction'
   ],
   'Cardio': [
-    'Treadmill Running', 'Stairmaster', 'Rowing Machine', 'Elliptical',
-    'Stationary Bike', 'HIIT Training', 'Sprint Intervals', 'Jogging',
-    'Cycling', 'Swimming', 'Jump Rope', 'Burpees', 'Mountain Climbers',
-    'High Knees', 'Butt Kicks', 'Jumping Jacks', 'Box Jumps'
+    'Treadmill Running', 'Elliptical', 'Stairmaster', 'Rowing Machine', 'Cycling',
+    'Jump Rope', 'Burpees', 'Mountain Climbers', 'High Knees', 'Jumping Jacks',
+    'Battle Ropes', 'Assault Bike', 'Concept2 Rower', 'Stair Climber',
+    'Incline Walking', 'Sprint Intervals', 'Steady State Cardio'
   ]
 }
 
@@ -154,6 +165,15 @@ const PREMADE_TEMPLATES = {
           'Standing Calf Raises'
         ],
         muscleGroups: ['Quadriceps', 'Hamstrings', 'Glutes', 'Calves']
+      },
+      'Cardio': {
+        exercises: [
+          'Treadmill Running',
+          'Elliptical',
+          'Stairmaster',
+          'Rowing Machine'
+        ],
+        muscleGroups: ['Cardio']
       }
     },
     volumeLandmarks: {
@@ -165,7 +185,8 @@ const PREMADE_TEMPLATES = {
       'Quadriceps': { MEV: 8, MAV: 15, MRV: 20 },
       'Hamstrings': { MEV: 6, MAV: 13, MRV: 20 },
       'Glutes': { MEV: 6, MAV: 12, MRV: 16 },
-      'Calves': { MEV: 8, MAV: 16, MRV: 25 }
+      'Calves': { MEV: 8, MAV: 16, MRV: 25 },
+      'Cardio': { MEV: 2, MAV: 4, MRV: 6 }
     }
   },
   'Jeff Nippard - Strength Program': {
@@ -387,8 +408,7 @@ const RECOMMENDED_EXERCISES: Record<string, string[]> = {
   Quadriceps: ['Back Squat', 'Leg Press'],
   Hamstrings: ['Romanian Deadlift', 'Lying Leg Curls'],
   Glutes: ['Hip Thrusts', 'Romanian Deadlift'],
-  Calves: ['Standing Calf Raises'],
-  Cardio: ['Treadmill Running', 'Stairmaster', 'Rowing Machine']
+  Calves: ['Standing Calf Raises']
 }
 
 const TRAINING_SPLITS = {
@@ -403,17 +423,6 @@ const TRAINING_SPLITS = {
   },
   'Full Body': {
     'Full Body': ['Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps', 'Quadriceps', 'Hamstrings', 'Glutes', 'Calves']
-  },
-  'Push/Pull/Legs/Cardio': {
-    'Push (Chest, Shoulders, Triceps)': ['Chest', 'Shoulders', 'Triceps'],
-    'Pull (Back, Biceps)': ['Back', 'Biceps'],
-    'Legs (Quads, Hamstrings, Glutes, Calves)': ['Quadriceps', 'Hamstrings', 'Glutes', 'Calves'],
-    'Cardio': ['Cardio']
-  },
-  'Upper/Lower/Cardio': {
-    'Upper Body': ['Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps'],
-    'Lower Body': ['Quadriceps', 'Hamstrings', 'Glutes', 'Calves'],
-    'Cardio': ['Cardio']
   }
 }
 
@@ -440,14 +449,10 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
     // Set default training days based on split
     if (split === 'Push/Pull/Legs') setTrainingDays(6)
     else if (split === 'Upper/Lower') setTrainingDays(4)
-    else if (split === 'Push/Pull/Legs/Cardio') setTrainingDays(7)
-    else if (split === 'Upper/Lower/Cardio') setTrainingDays(6)
     else setTrainingDays(3)
   }
 
   const addExerciseToWorkout = (workoutType: string, exercise: string, muscleGroup: string) => {
-    const isTimeBased = isTimeBasedExercise(exercise)
-    
     setWorkoutPlans((prev: any) => ({
       ...prev,
       [workoutType]: {
@@ -455,8 +460,7 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
         [exercise]: {
           muscleGroup,
           sets: 3, // Will be recalculated later based on total exercises
-          reps: isTimeBased ? undefined : getDefaultReps(exercise),
-          duration: isTimeBased ? getDefaultDuration(exercise) : undefined, // in minutes
+          reps: getDefaultReps(exercise),
           weight: 0
         }
       }
@@ -587,41 +591,6 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
     return Math.max(1, totalExercises)
   }
 
-  // Helper function to determine if an exercise is time-based (cardio)
-  const isTimeBasedExercise = (exerciseName: string): boolean => {
-    const timeBasedKeywords = [
-      'treadmill', 'stairmaster', 'rowing', 'elliptical', 'bike', 'cycling',
-      'swimming', 'jump rope', 'burpees', 'mountain climbers', 'high knees',
-      'butt kicks', 'jumping jacks', 'box jumps', 'hiit', 'sprint', 'jogging'
-    ]
-    
-    const name = exerciseName.toLowerCase()
-    return timeBasedKeywords.some(keyword => name.includes(keyword))
-  }
-
-  // Helper function to get default duration for time-based exercises (in minutes)
-  const getDefaultDuration = (exerciseName: string): number => {
-    const name = exerciseName.toLowerCase()
-    
-    // HIIT and sprint intervals - shorter duration
-    if (name.includes('hiit') || name.includes('sprint') || name.includes('burpees') || name.includes('box jumps')) {
-      return 5 // 5 minutes
-    }
-    
-    // Moderate cardio - medium duration
-    if (name.includes('jogging') || name.includes('cycling') || name.includes('elliptical')) {
-      return 20 // 20 minutes
-    }
-    
-    // Endurance cardio - longer duration
-    if (name.includes('treadmill') || name.includes('stairmaster') || name.includes('rowing') || name.includes('swimming')) {
-      return 30 // 30 minutes
-    }
-    
-    // Default
-    return 15 // 15 minutes
-  }
-
   const getDefaultReps = (exercise: string) => {
     // Compound movements get lower reps, isolation gets higher reps
     const compoundExercises = [
@@ -723,24 +692,14 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
       }
 
       // Create workouts for Week 1 only
-      let workoutTypes: string[]
-      let workoutsPerWeek: number
-      
       // Use template split if a template is selected, otherwise use default split
       let workoutTypes: string[]
       let workoutsPerWeek: number
       
-      if (selectedTemplate && selectedTemplate !== 'Custom') {
+      if (selectedTemplate && selectedTemplate !== 'Custom' && PREMADE_TEMPLATES[selectedTemplate as keyof typeof PREMADE_TEMPLATES]) {
         const template = PREMADE_TEMPLATES[selectedTemplate as keyof typeof PREMADE_TEMPLATES]
-        if (template && template.split) {
-          workoutTypes = Object.keys(template.split)
-          workoutsPerWeek = Math.ceil(trainingDays / workoutTypes.length)
-        } else {
-          // Fallback to default split if template is invalid
-          console.warn('Invalid template selected, falling back to default split')
-          workoutTypes = Object.keys(TRAINING_SPLITS[selectedSplit as keyof typeof TRAINING_SPLITS])
-          workoutsPerWeek = Math.ceil(trainingDays / workoutTypes.length)
-        }
+        workoutTypes = Object.keys(template.split)
+        workoutsPerWeek = Math.ceil(trainingDays / workoutTypes.length)
       } else {
         workoutTypes = Object.keys(TRAINING_SPLITS[selectedSplit as keyof typeof TRAINING_SPLITS])
         workoutsPerWeek = Math.ceil(trainingDays / workoutTypes.length)
@@ -784,14 +743,25 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
           for (let setNum = 1; setNum <= setsCount; setNum++) {
             const isTimeBased = isTimeBasedExercise(exerciseName)
             
-            const { error: setError } = await createSet({
+            const setData: any = {
               exercise_id: exercise.id,
               set_number: setNum,
-              weight: (exerciseData as any).weight || 0,
-              reps: isTimeBased ? null : ((exerciseData as any).reps ? parseInt((exerciseData as any).reps.split('-')[0]) || 8 : 8),
-              duration: isTimeBased ? ((exerciseData as any).duration || 15) * 60 : null, // Convert minutes to seconds
               is_completed: false
-            })
+            }
+
+            if (isTimeBased) {
+              // For time-based exercises, use duration instead of weight/reps
+              setData.duration = 600 // 10 minutes default
+              setData.weight = null
+              setData.reps = null
+            } else {
+              // For regular exercises, use weight and reps
+              setData.weight = (exerciseData as any).weight || 0
+              setData.reps = parseInt((exerciseData as any).reps.split('-')[0]) || 8
+              setData.duration = null
+            }
+
+            const { error: setError } = await createSet(setData)
 
             if (setError) {
               throw new Error(`Failed to create set: ${setError.message}`)
