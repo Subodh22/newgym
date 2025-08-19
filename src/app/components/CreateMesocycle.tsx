@@ -43,7 +43,8 @@ const EXERCISE_DATABASE = {
     'Deadlift', 'Rack Pulls', 'Pull-ups', 'Chin-ups', 'Lat Pulldown',
     'One-Arm Dumbbell Row', 'Barbell Rows', 'Pendlay Row', 'T-Bar Rows',
     'Chest-Supported Row', 'Machine Row', 'Cable Rows', 'Straight-Arm Pulldown',
-    'Face Pulls', 'Shrugs'
+    'Face Pulls', 'Shrugs', 'Weighted Pull-up', 'Wide-Grip Lat Pulldown',
+    'Seated Face Pull', 'Cable Pull-Through'
   ],
   'Shoulders': [
     'Overhead Press', 'Seated Barbell Press', 'Dumbbell Shoulder Press',
@@ -64,11 +65,13 @@ const EXERCISE_DATABASE = {
   'Quadriceps': [
     'Back Squat', 'Front Squat', 'High-Bar Squat', 'Hack Squat', 'Leg Press',
     'Bulgarian Split Squats', 'Leg Extensions', 'Lunges', 'Walking Lunges',
-    'Step-ups', 'Sissy Squats'
+    'Step-ups', 'Sissy Squats', 'Pin Squat', 'Unilateral Leg Press'
   ],
   'Hamstrings': [
     'Romanian Deadlift', 'Stiff-Leg Deadlift', 'Good Mornings', 'Single Leg RDL',
-    'Lying Leg Curls', 'Seated Leg Curls', 'Nordic Curl', 'Glute Ham Raises'
+    'Lying Leg Curls', 'Seated Leg Curls', 'Nordic Curl', 'Glute Ham Raises',
+    'Glute-Ham Raise', 'Nordic Ham Curl', 'Barbell RDL', 'Sliding Leg Curl',
+    'Unilateral Leg Curl'
   ],
   'Glutes': [
     'Hip Thrusts', 'Barbell Hip Thrusts', 'Hip Thrust Machine',
@@ -78,7 +81,12 @@ const EXERCISE_DATABASE = {
   'Calves': [
     'Standing Calf Raises', 'Seated Calf Raises', 'Smith Machine Calf Raises',
     'Leg Press Calf Press', 'Single-Leg Calf Raises', 'Donkey Calf Raises',
-    'Walking Calf Raises'
+    'Walking Calf Raises', 'Standing Calf Raise', 'Unilateral Standing Calf Raise'
+  ],
+  'Abs': [
+    'Crunches', 'Planks', 'Russian Twists', 'Leg Raises', 'Bicycle Crunches',
+    'Mountain Climbers', 'L-Sit Hold', 'Weighted Crunch', 'Cable Crunch',
+    'Long-Lever Plank', 'Wall Slide', 'Hip Abduction'
   ]
 }
 
@@ -149,44 +157,66 @@ const PREMADE_TEMPLATES = {
       'Calves': { MEV: 8, MAV: 16, MRV: 25 }
     }
   },
-  'Jeff Nippard - Push Pull Legs': {
-    description: 'Jeff Nippard\'s science-based PPL split for balanced development',
-    weeks: 4,
-    trainingDays: 6,
+  'Jeff Nippard - Strength Program': {
+    description: 'Jeff Nippard\'s evidence-based strength program with compound movements and progressive overload',
+    weeks: 12,
+    trainingDays: 4,
     split: {
-      'Push (Chest, Shoulders, Triceps)': {
-        exercises: [
-          'Barbell Bench Press',
-          'Incline Dumbbell Press',
-          'Overhead Press',
-          'Lateral Raises',
-          'Skull Crushers (EZ-Bar)',
-          'Cable Tricep Pushdown'
-        ],
-        muscleGroups: ['Chest', 'Shoulders', 'Triceps']
-      },
-      'Pull (Back, Biceps)': {
-        exercises: [
-          'Pull-ups',
-          'Barbell Rows',
-          'Lat Pulldown',
-          'Face Pulls',
-          'Barbell Curls',
-          'Hammer Curls'
-        ],
-        muscleGroups: ['Back', 'Biceps']
-      },
-      'Legs (Quads, Hamstrings, Glutes)': {
+      'Warmup': {
         exercises: [
           'Back Squat',
-          'Romanian Deadlift',
-          'Leg Press',
-          'Lying Leg Curls',
-          'Hip Thrusts',
-          'Standing Calf Raises'
+          'Barbell Bench Press',
+          'Deadlift',
+          'Hack Squat',
+          'Pin Squat',
+          'Barbell RDL'
         ],
-        muscleGroups: ['Quadriceps', 'Hamstrings', 'Glutes', 'Calves']
+        muscleGroups: ['Quadriceps', 'Chest', 'Hamstrings', 'Glutes']
+      },
+      'Main Compound': {
+        exercises: [
+          'Back Squat',
+          'Barbell Bench Press',
+          'Deadlift',
+          'Front Squat',
+          'Weighted Pull-up',
+          'Barbell RDL'
+        ],
+        muscleGroups: ['Quadriceps', 'Chest', 'Back', 'Hamstrings', 'Glutes']
+      },
+      'Accessory': {
+        exercises: [
+          'Glute-Ham Raise',
+          'Nordic Ham Curl',
+          'Seated Face Pull',
+          'Wide-Grip Lat Pulldown',
+          'Leg Extension',
+          'Leg Curl',
+          'Standing Calf Raise',
+          'Unilateral Standing Calf Raise'
+        ],
+        muscleGroups: ['Hamstrings', 'Back', 'Shoulders', 'Quadriceps', 'Calves']
+      },
+      'Core & Stability': {
+        exercises: [
+          'L-Sit Hold',
+          'Weighted Crunch',
+          'Cable Crunch',
+          'Long-Lever Plank',
+          'Wall Slide',
+          'Hip Abduction'
+        ],
+        muscleGroups: ['Abs', 'Core', 'Glutes']
       }
+    },
+    volumeLandmarks: {
+      'Quadriceps': { MEV: 6, MAV: 12, MRV: 18 },
+      'Chest': { MEV: 6, MAV: 12, MRV: 18 },
+      'Back': { MEV: 8, MAV: 16, MRV: 24 },
+      'Hamstrings': { MEV: 4, MAV: 10, MRV: 16 },
+      'Glutes': { MEV: 4, MAV: 10, MRV: 16 },
+      'Calves': { MEV: 6, MAV: 12, MRV: 18 },
+      'Abs': { MEV: 4, MAV: 10, MRV: 16 }
     }
   },
   'Athlean-X - Total Body': {

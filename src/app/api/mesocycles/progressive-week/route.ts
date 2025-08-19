@@ -54,13 +54,15 @@ const getBasicExercisesForWorkoutType = (workoutType: string): string[] => {
 const getMuscleGroupFromExercise = (exerciseName: string): string => {
   const name = exerciseName.toLowerCase()
   if (name.includes('bench') || name.includes('press') || name.includes('chest')) return 'Chest'
-  if (name.includes('row') || name.includes('pull') || name.includes('lat')) return 'Back'
-  if (name.includes('squat') || name.includes('leg')) return 'Quadriceps'
+  if (name.includes('row') || name.includes('pull') || name.includes('lat') || name.includes('face pull')) return 'Back'
+  if (name.includes('squat') || name.includes('leg') || name.includes('extension')) return 'Quadriceps'
   if (name.includes('curl')) return 'Biceps'
   if (name.includes('tricep') || name.includes('dip')) return 'Triceps'
   if (name.includes('shoulder') || name.includes('overhead')) return 'Shoulders'
-  if (name.includes('deadlift') || name.includes('romanian')) return 'Hamstrings'
+  if (name.includes('deadlift') || name.includes('romanian') || name.includes('ham') || name.includes('nordic')) return 'Hamstrings'
   if (name.includes('calf')) return 'Calves'
+  if (name.includes('crunch') || name.includes('plank') || name.includes('sit') || name.includes('abs')) return 'Abs'
+  if (name.includes('glute') || name.includes('hip')) return 'Glutes'
   return 'Other'
 }
 
