@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { X, Calendar, Clock, Play, Pause, ChevronRight } from 'lucide-react'
 import { updateMesocycle } from '@/lib/supabase/database'
+import { useSupabaseAuth } from '@/lib/hooks/useSupabaseAuth'
 import { DayView } from './DayView'
 
 interface MesocycleDetailProps {
@@ -14,6 +15,15 @@ interface MesocycleDetailProps {
 export default function MesocycleDetail({ mesocycle, onClose, onUpdate }: MesocycleDetailProps) {
   const [loading, setLoading] = useState(false)
   const [selectedWorkout, setSelectedWorkout] = useState<any>(null)
+  const { user } = useSupabaseAuth()
+
+  const handleWorkoutClick = (workout: any) => {
+    if (user?.email === 'subodhmaharjan33@gmail.com') {
+      setSelectedWorkout(workout)
+    } else {
+      // Do nothing for other users per requirement
+    }
+  }
 
   const toggleActive = async () => {
     setLoading(true)
@@ -114,7 +124,7 @@ export default function MesocycleDetail({ mesocycle, onClose, onUpdate }: Mesocy
                             <div
                               key={workout.id}
                               className="flex items-center justify-between p-3 bg-gray-50 rounded-md cursor-pointer hover:bg-gray-100 transition-colors"
-                              onClick={() => setSelectedWorkout(workout)}
+                              onClick={() => handleWorkoutClick(workout)}
                             >
                               <div className="flex items-center">
                                 <div className="flex-1">
