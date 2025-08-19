@@ -957,12 +957,32 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
         </div>
       </div>
 
+      {/* Template vs Custom Flow Indicator */}
+      {selectedTemplate && selectedTemplate !== 'Custom' && (
+        <div className="text-center mb-4">
+          <div className="inline-flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-2 rounded-lg">
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            </svg>
+            <span>Template selected - exercises are pre-configured!</span>
+          </div>
+        </div>
+      )}
+
       <Button
-        onClick={() => setStep(2)}
+        onClick={() => {
+          // If a template is selected (not Custom), go straight to creating the mesocycle
+          if (selectedTemplate && selectedTemplate !== 'Custom') {
+            createMesocycleInSupabase()
+          } else {
+            // If Custom is selected, go to exercise selection step
+            setStep(2)
+          }
+        }}
         className="w-full"
         disabled={!mesocycleName.trim()}
       >
-        Next: Select Exercises
+        {selectedTemplate && selectedTemplate !== 'Custom' ? 'Create Mesocycle' : 'Next: Select Exercises'}
       </Button>
     </div>
   )
