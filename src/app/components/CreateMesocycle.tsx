@@ -37,14 +37,16 @@ const EXERCISE_DATABASE = {
     'Dumbbell Bench Press', 'Incline Dumbbell Press', 'Decline Dumbbell Bench',
     'Weighted Dips', 'Dips', 'Push-ups', 'Close-Grip Bench Press',
     'Cable Flyes', 'Low-to-High Cable Fly', 'High-to-Low Cable Fly', 'Pec Deck',
-    'Machine Chest Press', 'Smith Machine Bench Press'
+    'Machine Chest Press', 'Smith Machine Bench Press', 'Incline Barbell Bench Press',
+    'Pec Deck Flyes'
   ],
   'Back': [
     'Deadlift', 'Rack Pulls', 'Pull-ups', 'Chin-ups', 'Lat Pulldown',
     'One-Arm Dumbbell Row', 'Barbell Rows', 'Pendlay Row', 'T-Bar Rows',
     'Chest-Supported Row', 'Machine Row', 'Cable Rows', 'Straight-Arm Pulldown',
     'Face Pulls', 'Shrugs', 'Weighted Pull-up', 'Wide-Grip Lat Pulldown',
-    'Seated Face Pull', 'Cable Pull-Through'
+    'Seated Face Pull', 'Cable Pull-Through', 'Bent-Over Barbell Rows',
+    'Single-Arm Pulldown', 'Cable Lat Pulldown', 'Seated Cable Rows'
   ],
   'Shoulders': [
     'Overhead Press', 'Seated Barbell Press', 'Dumbbell Shoulder Press',
@@ -54,24 +56,26 @@ const EXERCISE_DATABASE = {
   'Biceps': [
     'Barbell Curls', 'EZ-Bar Curls', 'Dumbbell Curls', 'Alternating DB Curls',
     'Incline Dumbbell Curls', 'Hammer Curls', 'Cable Curls', 'Rope Cable Curls',
-    'Preacher Curls', 'Spider Curls', 'Concentration Curls'
+    'Preacher Curls', 'Spider Curls', 'Concentration Curls', 'Dumbbell Hammer Curls'
   ],
   'Triceps': [
     'Close Grip Bench Press', 'Tricep Dips', 'Weighted Dips',
     'Overhead Tricep Extension', 'Dumbbell Overhead Extension',
     'Skull Crushers (EZ-Bar)', 'Cable Tricep Pushdown', 'Rope Pushdown',
-    'Diamond Push-ups', 'Kickbacks'
+    'Diamond Push-ups', 'Kickbacks', 'Triceps Pushdowns', 'Rope Pushdowns'
   ],
   'Quadriceps': [
     'Back Squat', 'Front Squat', 'High-Bar Squat', 'Hack Squat', 'Leg Press',
     'Bulgarian Split Squats', 'Leg Extensions', 'Lunges', 'Walking Lunges',
-    'Step-ups', 'Sissy Squats', 'Pin Squat', 'Unilateral Leg Press'
+    'Step-ups', 'Sissy Squats', 'Pin Squat', 'Unilateral Leg Press',
+    'Single-Leg Leg Extensions', 'Heel-Elevated Back Squats'
   ],
   'Hamstrings': [
     'Romanian Deadlift', 'Stiff-Leg Deadlift', 'Good Mornings', 'Single Leg RDL',
     'Lying Leg Curls', 'Seated Leg Curls', 'Nordic Curl', 'Glute Ham Raises',
     'Glute-Ham Raise', 'Nordic Ham Curl', 'Barbell RDL', 'Sliding Leg Curl',
-    'Unilateral Leg Curl'
+    'Unilateral Leg Curl', 'Seated Hamstring Curls', 'Single-Leg Hamstring Curls',
+    'Lying Hamstring Curls', 'Single-Leg Lying Hamstring Curls'
   ],
   'Glutes': [
     'Hip Thrusts', 'Barbell Hip Thrusts', 'Hip Thrust Machine',
@@ -297,6 +301,71 @@ const PREMADE_TEMPLATES = {
         ],
         muscleGroups: ['Quadriceps', 'Hamstrings', 'Glutes', 'Calves']
       }
+    }
+  },
+  'Sam Sulek - High Volume Bodybuilding': {
+    description: 'Sam Sulek\'s intense high-volume bodybuilding program with failure-based training and minimal rest',
+    weeks: 4,
+    trainingDays: 4,
+    split: {
+      'Chest & Shoulders': {
+        exercises: [
+          'Incline Barbell Bench Press',
+          'Machine Chest Press',
+          'Pec Deck Flyes',
+          'Cable Flyes',
+          'Rear Delt Flyes',
+          'Lateral Raises',
+          'Overhead Press'
+        ],
+        muscleGroups: ['Chest', 'Shoulders']
+      },
+      'Back': {
+        exercises: [
+          'Bent-Over Barbell Rows',
+          'Lat Pulldown',
+          'Single-Arm Pulldown',
+          'Cable Lat Pulldown',
+          'Seated Cable Rows'
+        ],
+        muscleGroups: ['Back']
+      },
+      'Legs': {
+        exercises: [
+          'Seated Hamstring Curls',
+          'Single-Leg Hamstring Curls',
+          'Lying Hamstring Curls',
+          'Single-Leg Lying Hamstring Curls',
+          'Heel-Elevated Back Squats',
+          'Single-Leg Leg Extensions',
+          'Sissy Squats',
+          'Standing Calf Raises',
+          'Seated Calf Raises'
+        ],
+        muscleGroups: ['Quadriceps', 'Hamstrings', 'Glutes', 'Calves']
+      },
+      'Arms': {
+        exercises: [
+          'Triceps Pushdowns',
+          'Dips',
+          'Rope Pushdowns',
+          'Dumbbell Hammer Curls',
+          'Preacher Curls',
+          'Cable Curls',
+          'Concentration Curls'
+        ],
+        muscleGroups: ['Biceps', 'Triceps']
+      }
+    },
+    volumeLandmarks: {
+      'Chest': { MEV: 12, MAV: 20, MRV: 28 },
+      'Shoulders': { MEV: 10, MAV: 18, MRV: 26 },
+      'Back': { MEV: 12, MAV: 20, MRV: 28 },
+      'Quadriceps': { MEV: 10, MAV: 18, MRV: 26 },
+      'Hamstrings': { MEV: 8, MAV: 16, MRV: 24 },
+      'Biceps': { MEV: 8, MAV: 16, MRV: 24 },
+      'Triceps': { MEV: 8, MAV: 16, MRV: 24 },
+      'Calves': { MEV: 12, MAV: 20, MRV: 28 }
     }
   }
 }
