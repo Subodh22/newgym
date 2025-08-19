@@ -119,29 +119,34 @@ export function AddExerciseForm({ workoutId, onExerciseAdded, onCancel }: AddExe
         <div className="space-y-4">
           <div>
             <label htmlFor="exercise-select" className="block text-sm font-medium text-gray-700 mb-2">Choose Exercise</label>
-            <select
-              id="exercise-select"
-              value={exerciseName}
-              onChange={(e) => setExerciseName(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded-md"
-            >
-              <option value="">Select an exercise...</option>
-              <optgroup label="Push Exercises">
-                {commonExercises.slice(0, 10).map(exercise => (
-                  <option key={exercise} value={exercise}>{exercise}</option>
-                ))}
-              </optgroup>
-              <optgroup label="Pull Exercises">
-                {commonExercises.slice(10, 19).map(exercise => (
-                  <option key={exercise} value={exercise}>{exercise}</option>
-                ))}
-              </optgroup>
-              <optgroup label="Leg Exercises">
-                {commonExercises.slice(19).map(exercise => (
-                  <option key={exercise} value={exercise}>{exercise}</option>
-                ))}
-              </optgroup>
-            </select>
+                         <select
+               id="exercise-select"
+               value={exerciseName}
+               onChange={(e) => setExerciseName(e.target.value)}
+               className="w-full p-2 border border-gray-300 rounded-md"
+             >
+               <option value="">Select an exercise...</option>
+               <optgroup label="Push Exercises">
+                 {commonExercises.slice(0, 10).map(exercise => (
+                   <option key={exercise} value={exercise}>{exercise}</option>
+                 ))}
+               </optgroup>
+               <optgroup label="Pull Exercises">
+                 {commonExercises.slice(10, 19).map(exercise => (
+                   <option key={exercise} value={exercise}>{exercise}</option>
+                 ))}
+               </optgroup>
+               <optgroup label="Leg Exercises">
+                 {commonExercises.slice(19, 29).map(exercise => (
+                   <option key={exercise} value={exercise}>{exercise}</option>
+                 ))}
+               </optgroup>
+               <optgroup label="Cardio Exercises">
+                 {commonExercises.slice(29).map(exercise => (
+                   <option key={exercise} value={exercise}>{exercise}</option>
+                 ))}
+               </optgroup>
+             </select>
           </div>
           
           <Button
