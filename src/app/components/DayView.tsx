@@ -507,10 +507,16 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
 
       const newExercises = arrayMove(workout.exercises, oldIndex, newIndex)
       
+      // Update exercise_order values in the new array
+      const updatedExercises = newExercises.map((exercise: any, index: number) => ({
+        ...exercise,
+        exercise_order: index + 1
+      }))
+      
       // Update local state immediately for smooth UX
       setWorkout(prev => ({
         ...prev,
-        exercises: newExercises
+        exercises: updatedExercises
       }))
 
       // Update the database
@@ -673,7 +679,6 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
                   strategy={verticalListSortingStrategy}
                 >
                   {workout.exercises
-                    .sort((a: any, b: any) => a.exercise_order - b.exercise_order)
                     .map((exercise: any) => (
                       <SortableExerciseCard
                         key={exercise.id}
