@@ -1,6 +1,25 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import {
+  useSortable,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { ExerciseCard } from './ExerciseCard'
 import { WeekFeedback } from './WeekFeedback'
 import { AddExerciseForm } from './AddExerciseForm'
@@ -18,6 +37,40 @@ interface DayViewProps {
   onUpdate: () => void
 }
 
+interface SortableExerciseCardProps {
+  exercise: any
+  onUpdateExercise: () => void
+  onDeleteExercise: (exerciseId: number) => void
+}
+
+function SortableExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: SortableExerciseCardProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: exercise.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <ExerciseCard
+        exercise={exercise}
+        onUpdateExercise={onUpdateExercise}
+        onDeleteExercise={onDeleteExercise}
+        dragHandleProps={{ ...attributes, ...listeners }}
+      />
+    </div>
+  )
+}
+
 export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewProps) {
   const { user } = useSupabaseAuth()
   const [workout, setWorkout] = useState(initialWorkout)
@@ -28,6 +81,13 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
   const [completionData, setCompletionData] = useState<any>(null)
   // const [progressiveOverloadApplied, setProgressiveOverloadApplied] = useState(false)
   const [showAddExercise, setShowAddExercise] = useState(false)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
 
   const refreshWorkout = async () => {
     if (!user) return
@@ -438,6 +498,46 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
     setShowFeedback(false)
   }
 
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (active.id !== over?.id) {
+      const oldIndex = workout.exercises.findIndex((exercise: any) => exercise.id === active.id)
+      const newIndex = workout.exercises.findIndex((exercise: any) => exercise.id === over?.id)
+
+      const newExercises = arrayMove(workout.exercises, oldIndex, newIndex)
+      
+      // Update local state immediately for smooth UX
+      setWorkout(prev => ({
+        ...prev,
+        exercises: newExercises
+      }))
+
+      // Update the database
+      try {
+        const exerciseIds = newExercises.map((exercise: any) => exercise.id)
+        const response = await fetch('/api/exercises/reorder', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ exerciseIds })
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to reorder exercises')
+        }
+      } catch (error) {
+        console.error('Error reordering exercises:', error)
+        // Revert the local state if the API call fails
+        setWorkout(prev => ({
+          ...prev,
+          exercises: workout.exercises
+        }))
+      }
+    }
+  }
+
   const handleDeleteExercise = async (exerciseId: number) => {
     if (!confirm('Are you sure you want to delete this exercise?')) return
     
@@ -563,16 +663,27 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
         <CardContent>
           <div className="space-y-4">
             {workout.exercises && workout.exercises.length > 0 ? (
-              workout.exercises
-                .sort((a: any, b: any) => a.exercise_order - b.exercise_order)
-                .map((exercise: any) => (
-                  <ExerciseCard
-                    key={exercise.id}
-                    exercise={exercise}
-                    onUpdateExercise={refreshWorkout}
-                    onDeleteExercise={handleDeleteExercise}
-                  />
-                ))
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={workout.exercises.map((exercise: any) => exercise.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {workout.exercises
+                    .sort((a: any, b: any) => a.exercise_order - b.exercise_order)
+                    .map((exercise: any) => (
+                      <SortableExerciseCard
+                        key={exercise.id}
+                        exercise={exercise}
+                        onUpdateExercise={refreshWorkout}
+                        onDeleteExercise={handleDeleteExercise}
+                      />
+                    ))}
+                </SortableContext>
+              </DndContext>
             ) : (
               <div className="py-8 text-center">
                 <Plus className="h-12 w-12 mx-auto mb-4 text-gray-400 opacity-50" />

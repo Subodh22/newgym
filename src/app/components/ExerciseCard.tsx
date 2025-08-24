@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
-import { Check, Plus, X, Play } from 'lucide-react'
+import { Check, Plus, X, Play, GripVertical } from 'lucide-react'
 import { updateSet, createSet, deleteSet } from '@/lib/supabase/database'
 import { ExerciseFeedback } from './ExerciseFeedback'
 import { getExerciseVideoUrl, toYouTubeEmbed, setCustomExerciseVideoUrl } from '@/app/lib/exerciseVideos'
@@ -37,6 +37,7 @@ interface ExerciseCardProps {
   exercise: Exercise
   onUpdateExercise: () => void
   onDeleteExercise?: (exerciseId: number) => void
+  dragHandleProps?: any
 }
 
 // Helper function to determine if an exercise is time-based
@@ -50,7 +51,7 @@ const isTimeBasedExercise = (exerciseName: string): boolean => {
   return timeBasedExercises.includes(exerciseName)
 }
 
-export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: ExerciseCardProps) {
+export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise, dragHandleProps }: ExerciseCardProps) {
   const [loading, setLoading] = useState(false)
   const [localSetValues, setLocalSetValues] = useState<{[key: number]: {weight?: number, reps?: number, duration?: number}}>({})
   const [showFeedback, setShowFeedback] = useState(false)
@@ -284,6 +285,9 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <div className="cursor-grab active:cursor-grabbing" {...dragHandleProps}>
+              <GripVertical className="h-4 w-4 text-gray-400" />
+            </div>
             {embedUrl && (
               <Button variant="outline" size="sm" onClick={() => setShowVideo(true)} className="h-8 px-2">
                 <Play className="h-4 w-4" />
