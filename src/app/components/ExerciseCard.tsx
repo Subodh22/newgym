@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
-import { Check, Plus, X } from 'lucide-react'
+import { Check, Plus, X, Play } from 'lucide-react'
 import { updateSet, createSet, deleteSet } from '@/lib/supabase/database'
 import { ExerciseFeedback } from './ExerciseFeedback'
 import { getExerciseVideoUrl, toYouTubeEmbed, setCustomExerciseVideoUrl } from '@/app/lib/exerciseVideos'
@@ -262,14 +262,7 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
   const sortedSets = [...exercise.sets].sort((a, b) => a.set_number - b.set_number)
   const embedUrl = videoUrl ? toYouTubeEmbed(videoUrl) : null
 
-  const handleAttachVideo = () => {
-    const url = window.prompt('Paste the YouTube video URL for this exercise:')
-    if (url && url.trim()) {
-      setCustomExerciseVideoUrl(exercise.name, url.trim())
-      setVideoUrl(url.trim())
-      setShowVideo(true)
-    }
-  }
+
 
   return (
     <Card className="w-full">
@@ -295,9 +288,10 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
           </div>
           <div className="flex items-center gap-2">
             {embedUrl && (
-              <Button variant="outline" size="sm" onClick={() => setShowVideo(true)} className="h-8 px-2">Play</Button>
+              <Button variant="outline" size="sm" onClick={() => setShowVideo(true)} className="h-8 px-2">
+                <Play className="h-4 w-4" />
+              </Button>
             )}
-            <Button variant="ghost" size="sm" onClick={handleAttachVideo} className="h-8 px-2">Attach Video</Button>
             {onDeleteExercise && (
               <Button
                 variant="ghost"
