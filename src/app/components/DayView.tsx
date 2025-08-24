@@ -60,12 +60,17 @@ function SortableExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: 
   }
 
   return (
-    <div ref={setNodeRef} style={style}>
+    <div 
+      ref={setNodeRef} 
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="cursor-move touch-none"
+    >
       <ExerciseCard
         exercise={exercise}
         onUpdateExercise={onUpdateExercise}
         onDeleteExercise={onDeleteExercise}
-        dragHandleProps={{ ...attributes, ...listeners }}
       />
     </div>
   )
