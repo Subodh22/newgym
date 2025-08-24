@@ -133,6 +133,8 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise, dra
         )
         const allCompleted = updatedSets.every(set => set.is_completed)
         if (allCompleted) {
+          // Start rest timer AND show feedback
+          startRestTimer()
           setShowFeedback(true)
         } else {
           startRestTimer()
