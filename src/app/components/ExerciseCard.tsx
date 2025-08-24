@@ -90,9 +90,13 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise, dra
     if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove)
       document.addEventListener('mouseup', handleMouseUp)
+      document.addEventListener('touchmove', handleTouchMove, { passive: false })
+      document.addEventListener('touchend', handleTouchEnd)
       return () => {
         document.removeEventListener('mousemove', handleMouseMove)
         document.removeEventListener('mouseup', handleMouseUp)
+        document.removeEventListener('touchmove', handleTouchMove)
+        document.removeEventListener('touchend', handleTouchEnd)
       }
     }
   }, [isDragging, dragOffset])
@@ -225,6 +229,21 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise, dra
     })
   }
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    // Only start dragging if touching the timer header or background, not buttons
+    if ((e.target as HTMLElement).closest('button')) {
+      return
+    }
+    
+    setIsDragging(true)
+    const rect = e.currentTarget.getBoundingClientRect()
+    const touch = e.touches[0]
+    setDragOffset({
+      x: touch.clientX - rect.left,
+      y: touch.clientY - rect.top
+    })
+  }
+
   const handleMouseMove = (e: MouseEvent) => {
     if (isDragging) {
       const newX = e.clientX - dragOffset.x
@@ -241,7 +260,29 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise, dra
     }
   }
 
+  const handleTouchMove = (e: TouchEvent) => {
+    if (isDragging) {
+      e.preventDefault() // Prevent scrolling while dragging
+      const touch = e.touches[0]
+      const newX = touch.clientX - dragOffset.x
+      const newY = touch.clientY - dragOffset.y
+      
+      // Keep timer within viewport bounds
+      const maxX = window.innerWidth - 256 // timer width
+      const maxY = window.innerHeight - 200 // timer height
+      
+      setTimerPosition({
+        x: Math.max(0, Math.min(newX, maxX)),
+        y: Math.max(0, Math.min(newY, maxY))
+      })
+    }
+  }
+
   const handleMouseUp = () => {
+    setIsDragging(false)
+  }
+
+  const handleTouchEnd = () => {
     setIsDragging(false)
   }
 
@@ -632,7 +673,7 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise, dra
       {/* Rest Timer - draggable floating widget */}
       {showRestTimer && (
         <div 
-          className="fixed z-50 cursor-move"
+          className="fixed z-50 cursor-move touch-none"
           style={{
             left: `${timerPosition.x}px`,
             top: `${timerPosition.y}px`,
@@ -640,6 +681,7 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise, dra
             transition: isDragging ? 'none' : 'transform 0.2s ease'
           }}
           onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
         >
           <div className="bg-white rounded-lg shadow-lg border p-4 w-64 text-center space-y-3">
             <div className="flex items-center justify-between">
