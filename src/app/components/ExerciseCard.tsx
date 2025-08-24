@@ -323,13 +323,39 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise, dra
   }
 
   const handleLocalUpdate = (setId: number, field: 'weight' | 'reps' | 'duration' | 'distance', value: number) => {
-    setLocalSetValues(prev => ({
-      ...prev,
-      [setId]: {
-        ...prev[setId],
-        [field]: value
+    setLocalSetValues(prev => {
+      const updated = { ...prev }
+      
+      // For weight field, propagate to all sets below (higher set numbers)
+      if (field === 'weight') {
+        const currentSet = exercise.sets.find(set => set.id === setId)
+        if (currentSet) {
+          // Update current set
+          updated[setId] = {
+            ...updated[setId],
+            [field]: value
+          }
+          
+          // Update all sets below (higher set numbers)
+          exercise.sets.forEach(set => {
+            if (set.set_number > currentSet.set_number) {
+              updated[set.id] = {
+                ...updated[set.id],
+                [field]: value
+              }
+            }
+          })
+        }
+      } else {
+        // For other fields, only update the current set
+        updated[setId] = {
+          ...updated[setId],
+          [field]: value
+        }
       }
-    }))
+      
+      return updated
+    })
   }
 
   const saveSetValue = async (setId: number, field: 'weight' | 'reps' | 'duration' | 'distance') => {
