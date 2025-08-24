@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
-import { Check, Plus, X, Play, GripVertical } from 'lucide-react'
+import { Check, Plus, X, Play, GripVertical, Move } from 'lucide-react'
 import { updateSet, createSet, deleteSet } from '@/lib/supabase/database'
 import { ExerciseFeedback } from './ExerciseFeedback'
 import { getExerciseVideoUrl, toYouTubeEmbed, setCustomExerciseVideoUrl } from '@/app/lib/exerciseVideos'
@@ -64,6 +64,9 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise, dra
   const restPausedRef = useRef(false)
   const [showVideo, setShowVideo] = useState(false)
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
+  const [timerPosition, setTimerPosition] = useState({ x: 20, y: 20 })
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
 
   useEffect(() => {
     setVideoUrl(getExerciseVideoUrl(exercise.name))
@@ -80,6 +83,17 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise, dra
       }
     }
   }, [])
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove)
+      document.addEventListener('mouseup', handleMouseUp)
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove)
+        document.removeEventListener('mouseup', handleMouseUp)
+      }
+    }
+  }, [isDragging, dragOffset])
 
   const startRestTimer = (seconds: number = restDurationSeconds) => {
     if (restIntervalIdRef.current) clearInterval(restIntervalIdRef.current)
@@ -109,6 +123,40 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise, dra
     if (restIntervalIdRef.current) clearInterval(restIntervalIdRef.current)
     restIntervalIdRef.current = null
     setShowRestTimer(false)
+  }
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    // Only start dragging if clicking on the timer header or background, not buttons
+    if ((e.target as HTMLElement).closest('button')) {
+      return
+    }
+    
+    setIsDragging(true)
+    const rect = e.currentTarget.getBoundingClientRect()
+    setDragOffset({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    })
+  }
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (isDragging) {
+      const newX = e.clientX - dragOffset.x
+      const newY = e.clientY - dragOffset.y
+      
+      // Keep timer within viewport bounds
+      const maxX = window.innerWidth - 256 // timer width
+      const maxY = window.innerHeight - 200 // timer height
+      
+      setTimerPosition({
+        x: Math.max(0, Math.min(newX, maxX)),
+        y: Math.max(0, Math.min(newY, maxY))
+      })
+    }
+  }
+
+  const handleMouseUp = () => {
+    setIsDragging(false)
   }
 
   const formatTime = (totalSeconds: number) => {
@@ -493,12 +541,24 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise, dra
         </div>
       )}
 
-      {/* Rest Timer - floating widget (non-blocking) */}
+      {/* Rest Timer - draggable floating widget */}
       {showRestTimer && (
-        <div className="fixed bottom-24 right-4 z-50">
+        <div 
+          className="fixed z-50 cursor-move"
+          style={{
+            left: `${timerPosition.x}px`,
+            top: `${timerPosition.y}px`,
+            transform: isDragging ? 'scale(1.02)' : 'scale(1)',
+            transition: isDragging ? 'none' : 'transform 0.2s ease'
+          }}
+          onMouseDown={handleMouseDown}
+        >
           <div className="bg-white rounded-lg shadow-lg border p-4 w-64 text-center space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold">Rest Timer</h3>
+              <div className="flex items-center gap-2">
+                <Move className="h-4 w-4 text-gray-400" />
+                <h3 className="text-sm font-semibold">Rest Timer</h3>
+              </div>
               <button onClick={stopRestTimer} className="text-xs text-gray-500 hover:text-gray-700">Dismiss</button>
             </div>
             <div className="text-4xl font-mono tracking-widest select-none">{formatTime(restRemainingSeconds)}</div>
