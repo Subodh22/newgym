@@ -320,7 +320,12 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise, dra
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between">
           <div className="space-y-2">
-            <CardTitle className="text-lg">{exercise.name}</CardTitle>
+            <div className="flex items-center gap-2">
+              <div className="cursor-grab active:cursor-grabbing" {...dragHandleProps}>
+                <GripVertical className="h-4 w-4 text-gray-400" />
+              </div>
+              <CardTitle className="text-lg">{exercise.name}</CardTitle>
+            </div>
             <div className="flex gap-2">
               {exercise.target_rir !== undefined && (
                 <Badge variant="outline" className="text-xs">
@@ -335,9 +340,6 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise, dra
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="cursor-grab active:cursor-grabbing" {...dragHandleProps}>
-              <GripVertical className="h-4 w-4 text-gray-400" />
-            </div>
             {embedUrl && (
               <Button variant="outline" size="sm" onClick={() => setShowVideo(true)} className="h-8 px-2">
                 <Play className="h-4 w-4" />
