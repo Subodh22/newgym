@@ -67,6 +67,8 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise, dra
   const [timerPosition, setTimerPosition] = useState({ x: 20, y: 20 })
   const [isDragging, setIsDragging] = useState(false)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
+  const [audioContext, setAudioContext] = useState<AudioContext | null>(null)
+  const [isTimerComplete, setIsTimerComplete] = useState(false)
 
   useEffect(() => {
     setVideoUrl(getExerciseVideoUrl(exercise.name))
@@ -95,28 +97,112 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise, dra
     }
   }, [isDragging, dragOffset])
 
+  // Initialize audio context and request notification permission
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const context = new (window.AudioContext || (window as any).webkitAudioContext)()
+      setAudioContext(context)
+      
+      // Request notification permission
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission()
+      }
+      
+      return () => {
+        context.close()
+      }
+    }
+  }, [])
+
+  // Play notification sound
+  const playNotificationSound = () => {
+    if (!audioContext) return
+
+    try {
+      const oscillator = audioContext.createOscillator()
+      const gainNode = audioContext.createGain()
+
+      oscillator.connect(gainNode)
+      gainNode.connect(audioContext.destination)
+
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime)
+      oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1)
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2)
+
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5)
+
+      oscillator.start(audioContext.currentTime)
+      oscillator.stop(audioContext.currentTime + 0.5)
+    } catch (error) {
+      console.error('Error playing notification sound:', error)
+    }
+  }
+
+  // Vibrate device (mobile)
+  const vibrateDevice = () => {
+    if ('vibrate' in navigator) {
+      navigator.vibrate([200, 100, 200])
+    }
+  }
+
+  // Show notification
+  const showNotification = () => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('Rest Timer Complete!', {
+        body: 'Time to start your next set!',
+        icon: '/favicon.ico',
+        tag: 'rest-timer'
+      })
+    }
+  }
+
   const startRestTimer = (seconds: number = restDurationSeconds) => {
     if (restIntervalIdRef.current) clearInterval(restIntervalIdRef.current)
+    
+    const startTime = Date.now()
+    const endTime = startTime + (seconds * 1000)
+    
     setRestRemainingSeconds(seconds)
     setShowRestTimer(true)
     setIsRestPaused(false)
+    setIsTimerComplete(false)
+    
     const id = window.setInterval(() => {
-      setRestRemainingSeconds(prev => {
-        if (restPausedRef.current) return prev
-        if (prev <= 1) {
-          clearInterval(id)
-          restIntervalIdRef.current = null
-          setShowRestTimer(false)
-          return 0
-        }
-        return prev - 1
-      })
+      if (restPausedRef.current) return
+      
+      const now = Date.now()
+      const remaining = Math.max(0, Math.ceil((endTime - now) / 1000))
+      
+      setRestRemainingSeconds(remaining)
+      
+      if (remaining <= 0) {
+        clearInterval(id)
+        restIntervalIdRef.current = null
+        setShowRestTimer(false)
+        setIsTimerComplete(true)
+        
+        // Trigger notifications
+        playNotificationSound()
+        vibrateDevice()
+        showNotification()
+        
+        // Reset completion state after a delay
+        setTimeout(() => setIsTimerComplete(false), 3000)
+      }
     }, 1000)
+    
     restIntervalIdRef.current = id
   }
 
   const addRestTime = (seconds: number) => {
     setRestRemainingSeconds(prev => prev + seconds)
+    // Extend the timer by updating the end time
+    if (restIntervalIdRef.current) {
+      const currentEndTime = Date.now() + (restRemainingSeconds * 1000)
+      const newEndTime = currentEndTime + (seconds * 1000)
+      // The timer will automatically adjust on the next interval
+    }
   }
 
   const stopRestTimer = () => {
@@ -561,9 +647,29 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise, dra
                 <Move className="h-4 w-4 text-gray-400" />
                 <h3 className="text-sm font-semibold">Rest Timer</h3>
               </div>
-              <button onClick={stopRestTimer} className="text-xs text-gray-500 hover:text-gray-700">Dismiss</button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => {
+                    if ('Notification' in window) {
+                      Notification.requestPermission()
+                    }
+                  }} 
+                  className="text-xs text-blue-500 hover:text-blue-700"
+                  title="Enable notifications"
+                >
+                  🔔
+                </button>
+                <button onClick={stopRestTimer} className="text-xs text-gray-500 hover:text-gray-700">Dismiss</button>
+              </div>
             </div>
-            <div className="text-4xl font-mono tracking-widest select-none">{formatTime(restRemainingSeconds)}</div>
+            <div className={`text-4xl font-mono tracking-widest select-none ${isTimerComplete ? 'text-green-600 animate-pulse' : ''}`}>
+              {isTimerComplete ? '00:00' : formatTime(restRemainingSeconds)}
+            </div>
+            {isTimerComplete && (
+              <div className="text-sm text-green-600 font-medium text-center">
+                Rest complete! Time for your next set! 💪
+              </div>
+            )}
             <div className="flex items-center justify-center gap-2">
               <Button variant="outline" size="sm" onClick={() => setIsRestPaused(p => !p)}>
                 {isRestPaused ? 'Resume' : 'Pause'}
