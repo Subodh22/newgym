@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Card, CardContent } from './ui/card'
+import { getAllExercises, getMuscleGroups, searchExercises, type ExerciseData } from '@/app/lib/exerciseVideos'
 
 interface AddExerciseFormProps {
   workoutId: number
@@ -11,67 +12,34 @@ interface AddExerciseFormProps {
   onCancel: () => void
 }
 
-const commonExercises = [
-  // Push exercises
-  'Barbell Bench Press',
-  'Dumbbell Bench Press',
-  'Incline Bench Press',
-  'Decline Bench Press',
-  'Overhead Press',
-  'Dumbbell Shoulder Press',
-  'Lateral Raises',
-  'Tricep Dips',
-  'Tricep Pushdowns',
-  'Close Grip Bench Press',
-  
-  // Pull exercises
-  'Deadlift',
-  'Barbell Rows',
-  'Dumbbell Rows',
-  'Pull-ups',
-  'Lat Pulldowns',
-  'Bicep Curls',
-  'Hammer Curls',
-  'Preacher Curls',
-  'Face Pulls',
-  
-  // Leg exercises
-  'Back Squat',
-  'Front Squat',
-  'Leg Press',
-  'Romanian Deadlift',
-  'Leg Extensions',
-  'Leg Curls',
-  'Calf Raises',
-  'Hip Thrusts',
-  'Lunges',
-  'Step-ups',
-  
-  // Cardio exercises
-  'Treadmill Running',
-  'Elliptical',
-  'Stairmaster',
-  'Rowing Machine',
-  'Cycling',
-  'Jump Rope',
-  'Burpees',
-  'Mountain Climbers',
-  'High Knees',
-  'Jumping Jacks',
-  'Battle Ropes',
-  'Assault Bike',
-  'Concept2 Rower',
-  'Stair Climber',
-  'Incline Walking',
-  'Sprint Intervals',
-  'Steady State Cardio'
-]
-
 export function AddExerciseForm({ workoutId, onExerciseAdded, onCancel }: AddExerciseFormProps) {
   const [exerciseName, setExerciseName] = useState('')
   const [customExercise, setCustomExercise] = useState('')
   const [loading, setLoading] = useState(false)
   const [showCustom, setShowCustom] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<string>('')
+
+  // Get all exercises and muscle groups
+  const allExercises = useMemo(() => getAllExercises(), [])
+  const muscleGroups = useMemo(() => getMuscleGroups(), [])
+
+  // Filter exercises based on search and muscle group
+  const filteredExercises = useMemo(() => {
+    let exercises = allExercises
+
+    if (selectedMuscleGroup) {
+      exercises = exercises.filter(ex => ex.muscleGroup === selectedMuscleGroup)
+    }
+
+    if (searchQuery) {
+      exercises = searchExercises(searchQuery).filter(ex => 
+        !selectedMuscleGroup || ex.muscleGroup === selectedMuscleGroup
+      )
+    }
+
+    return exercises
+  }, [allExercises, selectedMuscleGroup, searchQuery])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -117,37 +85,79 @@ export function AddExerciseForm({ workoutId, onExerciseAdded, onCancel }: AddExe
     <form onSubmit={handleSubmit} className="space-y-4">
       {!showCustom ? (
         <div className="space-y-4">
+          {/* Muscle Group Filter */}
           <div>
-            <label htmlFor="exercise-select" className="block text-sm font-medium text-gray-700 mb-2">Choose Exercise</label>
-                         <select
-               id="exercise-select"
-               value={exerciseName}
-               onChange={(e) => setExerciseName(e.target.value)}
-               className="w-full p-2 border border-gray-300 rounded-md"
-             >
-               <option value="">Select an exercise...</option>
-               <optgroup label="Push Exercises">
-                 {commonExercises.slice(0, 10).map(exercise => (
-                   <option key={exercise} value={exercise}>{exercise}</option>
-                 ))}
-               </optgroup>
-               <optgroup label="Pull Exercises">
-                 {commonExercises.slice(10, 19).map(exercise => (
-                   <option key={exercise} value={exercise}>{exercise}</option>
-                 ))}
-               </optgroup>
-               <optgroup label="Leg Exercises">
-                 {commonExercises.slice(19, 29).map(exercise => (
-                   <option key={exercise} value={exercise}>{exercise}</option>
-                 ))}
-               </optgroup>
-               <optgroup label="Cardio Exercises">
-                 {commonExercises.slice(29).map(exercise => (
-                   <option key={exercise} value={exercise}>{exercise}</option>
-                 ))}
-               </optgroup>
-             </select>
+            <label htmlFor="muscle-group-select" className="block text-sm font-medium text-gray-700 mb-2">
+              Muscle Group
+            </label>
+            <select
+              id="muscle-group-select"
+              value={selectedMuscleGroup}
+              onChange={(e) => setSelectedMuscleGroup(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md"
+            >
+              <option value="">All Muscle Groups</option>
+              {muscleGroups.map(group => (
+                <option key={group} value={group}>{group}</option>
+              ))}
+            </select>
           </div>
+
+          {/* Search */}
+          <div>
+            <label htmlFor="exercise-search" className="block text-sm font-medium text-gray-700 mb-2">
+              Search Exercises
+            </label>
+            <Input
+              id="exercise-search"
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search exercises..."
+              className="w-full"
+            />
+          </div>
+
+          {/* Exercise Selection */}
+          <div>
+            <label htmlFor="exercise-select" className="block text-sm font-medium text-gray-700 mb-2">
+              Choose Exercise ({filteredExercises.length} available)
+            </label>
+            <select
+              id="exercise-select"
+              value={exerciseName}
+              onChange={(e) => setExerciseName(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md max-h-60"
+              size={Math.min(filteredExercises.length + 1, 10)}
+            >
+              <option value="">Select an exercise...</option>
+              {filteredExercises.map(exercise => (
+                <option key={exercise.name} value={exercise.name}>
+                  {exercise.name} ({exercise.muscleGroup})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Exercise Info Display */}
+          {exerciseName && (
+            <div className="p-3 bg-gray-50 rounded-md">
+              <h4 className="font-medium text-sm text-gray-900">{exerciseName}</h4>
+              {(() => {
+                const exercise = allExercises.find(ex => ex.name === exerciseName)
+                if (exercise) {
+                  return (
+                    <div className="text-xs text-gray-600 mt-1">
+                      <p><strong>Muscle Group:</strong> {exercise.muscleGroup}</p>
+                      <p><strong>Category:</strong> {exercise.category}</p>
+                      <p><strong>Equipment:</strong> {exercise.equipment.join(', ')}</p>
+                    </div>
+                  )
+                }
+                return null
+              })()}
+            </div>
+          )}
           
           <Button
             type="button"
@@ -160,7 +170,9 @@ export function AddExerciseForm({ workoutId, onExerciseAdded, onCancel }: AddExe
         </div>
       ) : (
         <div>
-          <label htmlFor="custom-exercise" className="block text-sm font-medium text-gray-700 mb-2">Exercise Name</label>
+          <label htmlFor="custom-exercise" className="block text-sm font-medium text-gray-700 mb-2">
+            Exercise Name
+          </label>
           <Input
             id="custom-exercise"
             value={customExercise}
@@ -174,7 +186,7 @@ export function AddExerciseForm({ workoutId, onExerciseAdded, onCancel }: AddExe
             onClick={() => setShowCustom(false)}
             className="w-full mt-2"
           >
-            Choose from List
+            Choose from Database
           </Button>
         </div>
       )}
