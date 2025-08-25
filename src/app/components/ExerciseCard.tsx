@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
-import { Check, Plus, X, Play, Move } from 'lucide-react'
+import { Check, Plus, X, Play, Move, GripVertical } from 'lucide-react'
 import { updateSet, createSet, deleteSet } from '@/lib/supabase/database'
 import { ExerciseFeedback } from './ExerciseFeedback'
 import { getExerciseVideoUrl, getExerciseEmbedUrl } from '@/app/lib/exerciseVideos'
@@ -37,6 +37,8 @@ interface ExerciseCardProps {
   exercise: Exercise
   onUpdateExercise: () => void
   onDeleteExercise?: (exerciseId: number) => void
+  dragAttributes?: any
+  dragListeners?: any
 }
 
 // Helper function to determine if an exercise is time-based
@@ -50,7 +52,7 @@ const isTimeBasedExercise = (exerciseName: string): boolean => {
   return timeBasedExercises.includes(exerciseName)
 }
 
-export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: ExerciseCardProps) {
+export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise, dragAttributes, dragListeners }: ExerciseCardProps) {
   const [loading, setLoading] = useState(false)
   const [localSetValues, setLocalSetValues] = useState<{[key: number]: {weight?: number, reps?: number, duration?: number}}>({})
   const [showFeedback, setShowFeedback] = useState(false)
@@ -469,9 +471,21 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
   return (
     <Card className="w-full">
       <CardHeader className="pb-4">
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between group">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
+              {dragAttributes && dragListeners && (
+                <button
+                  aria-label="Drag to reorder"
+                  title="Drag to reorder"
+                  type="button"
+                  {...dragAttributes}
+                  {...dragListeners}
+                  className="mr-1 w-8 h-8 flex items-center justify-center rounded-full bg-transparent hover:bg-gray-100 cursor-grab active:cursor-grabbing transition focus:outline-none focus:ring-2 focus:ring-blue-500 opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                >
+                  <GripVertical className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
+                </button>
+              )}
               <CardTitle className="text-lg">{exercise.name}</CardTitle>
             </div>
             <div className="flex gap-2">
