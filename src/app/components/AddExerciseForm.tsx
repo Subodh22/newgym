@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Card, CardContent } from './ui/card'
-import { getAllExercises, getMuscleGroups, searchExercises, type ExerciseData } from '@/app/lib/exerciseVideos'
+import { getAllExercisesUnified, getMuscleGroups, searchExercises, type ExerciseData } from '@/app/lib/exerciseVideos'
 
 interface AddExerciseFormProps {
   workoutId: number
@@ -21,7 +21,7 @@ export function AddExerciseForm({ workoutId, onExerciseAdded, onCancel }: AddExe
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<string>('')
 
   // Get all exercises and muscle groups
-  const allExercises = useMemo(() => getAllExercises(), [])
+  const allExercises = useMemo(() => getAllExercisesUnified(), [])
   const muscleGroups = useMemo(() => getMuscleGroups(), [])
 
   // Filter exercises based on search and muscle group
@@ -33,9 +33,8 @@ export function AddExerciseForm({ workoutId, onExerciseAdded, onCancel }: AddExe
     }
 
     if (searchQuery) {
-      exercises = searchExercises(searchQuery).filter(ex => 
-        !selectedMuscleGroup || ex.muscleGroup === selectedMuscleGroup
-      )
+      const setFiltered = new Set(searchExercises(searchQuery).map(e => e.name))
+      exercises = exercises.filter(ex => setFiltered.has(ex.name))
     }
 
     return exercises

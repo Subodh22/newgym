@@ -8,7 +8,7 @@ import { Input } from './ui/input'
 import { Check, Plus, X, Play, Move } from 'lucide-react'
 import { updateSet, createSet, deleteSet } from '@/lib/supabase/database'
 import { ExerciseFeedback } from './ExerciseFeedback'
-import { getExerciseVideoUrl, toYouTubeEmbed, setCustomExerciseVideoUrl } from '@/app/lib/exerciseVideos'
+import { getExerciseVideoUrl, getExerciseEmbedUrl } from '@/app/lib/exerciseVideos'
 
 interface Set {
   id: number
@@ -463,8 +463,7 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
   }
 
   const sortedSets = [...exercise.sets].sort((a, b) => a.set_number - b.set_number)
-  const embedUrl = videoUrl ? toYouTubeEmbed(videoUrl) : null
-
+  const embedUrl = getExerciseEmbedUrl(exercise.name)
 
 
   return (
@@ -490,7 +489,12 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
           </div>
           <div className="flex items-center gap-2">
             {embedUrl && (
-              <Button variant="outline" size="sm" onClick={() => setShowVideo(true)} className="h-8 px-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowVideo(true)} 
+                className="h-8 px-2"
+              >
                 <Play className="h-4 w-4" />
               </Button>
             )}

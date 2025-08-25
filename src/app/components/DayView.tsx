@@ -63,10 +63,17 @@ function SortableExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: 
     <div 
       ref={setNodeRef} 
       style={style}
-      {...attributes}
-      {...listeners}
-      className="cursor-move touch-none"
+      className="relative"
     >
+      {/* Drag handle - only this area triggers drag */}
+      <div 
+        {...attributes}
+        {...listeners}
+        className="absolute left-2 top-1/2 transform -translate-y-1/2 w-6 h-6 flex items-center justify-center cursor-move touch-none z-10"
+      >
+        <div className="w-4 h-4 bg-gray-300 rounded opacity-50 hover:opacity-100"></div>
+      </div>
+      
       <ExerciseCard
         exercise={exercise}
         onUpdateExercise={onUpdateExercise}
