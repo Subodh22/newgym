@@ -261,9 +261,6 @@ export function ExerciseCard({ exercise, onUpdateExercise, onDeleteExercise }: E
           <div className="space-y-2">
             <CardTitle className="text-lg">{exercise.name}</CardTitle>
             <div className="flex gap-2">
-              <Badge variant="secondary" className="text-xs">
-                Exercise {exercise.exercise_order}
-              </Badge>
               {exercise.target_rir !== undefined && (
                 <Badge variant="outline" className="text-xs">
                   {exercise.target_rir} RIR

@@ -1,0 +1,10 @@
+* [33me066b14[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m added some drag funcitonaltiy
+[31m|[m * [33me5929f8[m[33m ([m[1;31morigin/main[m[33m)[m ui(drag-handle): enlarge mobile drag region and switch to subtle 2x2 dot indicator; refine visuals
+[31m|[m * [33mc2fc8b0[m ui(drag-handle): move handle inside ExerciseCard, improve visuals; mobile-visible dotted/GripVertical styles; refine DnD usability
+[31m|[m * [33meb98431[m feat(videocheck): add full review UI with preview, change/add/remove + localStorage persistence; fix import; robust YouTube embed parsing. feat(add-exercise): include unified exercise list from video mappings + database
+[31m|[m * [33m1e15d4d[m Add comprehensive exercise database with 200+ exercises and video integration - fix video embedding and enhance AddExerciseForm with search and filtering
+[31m|[m * [33m4f0becc[m Make entire exercise card draggable on mobile - easier touch interaction
+[31m|[m * [33mea8757e[m Add weight propagation - when inputting weight, it updates all sets below automatically
+[31m|[m * [33m8ec6b39[m Add touch support for draggable rest timer - now works on mobile devices
+[31m|[m * [33mcbae565[m Add background timer with sound, vibration, and notifications - timer continues when app is in background
+[31m|[m * [33mc3a1894[m Move drag handle to left side before exercise name for better UX

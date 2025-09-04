@@ -641,9 +641,6 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
                                  <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing p-1">
                                    <GripVertical className="h-4 w-4 text-gray-400" />
                                  </div>
-                                 <span className="text-sm font-medium text-gray-600">
-                                   Exercise {exercise.exercise_order}
-                                 </span>
                                </div>
                                <div className="p-2">
                                  <ExerciseCard
