@@ -635,19 +635,15 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
                              <div
                                ref={provided.innerRef}
                                {...provided.draggableProps}
-                               className={`relative bg-white rounded-lg shadow-md ${snapshot.isDragging ? 'bg-gray-100 shadow-lg scale-105' : ''}`}
+                               className={`bg-white rounded-lg shadow-md ${snapshot.isDragging ? 'bg-gray-100 shadow-lg scale-105' : ''}`}
                              >
-                              <div className="absolute left-2 top-1/2 -translate-y-1/2">
-                                <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing p-1">
-                                  <GripVertical className="h-4 w-4 text-gray-400" />
-                                </div>
-                              </div>
-                              <div className="p-2 pl-7">
+                             <div className="p-2">
                                  <ExerciseCard
                                    key={exercise.id}
                                    exercise={exercise}
                                    onUpdateExercise={refreshWorkout}
                                    onDeleteExercise={handleDeleteExercise}
+                                   dragHandleProps={provided.dragHandleProps}
                                  />
                                </div>
                              </div>
