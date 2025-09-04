@@ -635,9 +635,9 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
                              <div
                                ref={provided.innerRef}
                                {...provided.draggableProps}
-                               className={`bg-white rounded-lg shadow-md ${snapshot.isDragging ? 'bg-gray-100 shadow-lg scale-105' : ''}`}
+                               className={`${snapshot.isDragging ? 'scale-105' : ''}`}
                              >
-                             <div className="p-2">
+                             <div>
                                  <ExerciseCard
                                    key={exercise.id}
                                    exercise={exercise}
