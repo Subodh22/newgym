@@ -1,14 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd'
 import { ExerciseCard } from './ExerciseCard'
 import { WeekFeedback } from './WeekFeedback'
 import { AddExerciseForm } from './AddExerciseForm'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Badge } from './ui/badge'
-import { ArrowLeft, Clock, Calendar, Plus, CheckCircle2 } from 'lucide-react'
-import { updateWorkout, getMesocycles } from '@/lib/supabase/database'
+import { ArrowLeft, Clock, Calendar, Plus, CheckCircle2, GripVertical } from 'lucide-react'
+import { updateWorkout, getMesocycles, updateExercise } from '@/lib/supabase/database'
 import { useSupabaseAuth } from '@/lib/hooks/useSupabaseAuth'
 import MesocycleCompletion from './MesocycleCompletion'
 
@@ -461,6 +462,58 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
     }
   }
 
+  // Drag and drop handler for reordering exercises
+  const handleDragEnd = async (result: DropResult) => {
+    if (!result.destination || !user) return
+
+    const { source, destination } = result
+    const sourceIndex = source.index
+    const destinationIndex = destination.index
+
+    if (sourceIndex === destinationIndex) return
+
+    try {
+      setLoading(true)
+      
+      // Create a copy of exercises array
+      const updatedExercises = [...workout.exercises]
+      
+      // Remove the dragged exercise from source position
+      const [draggedExercise] = updatedExercises.splice(sourceIndex, 1)
+      
+      // Insert it at the destination position
+      updatedExercises.splice(destinationIndex, 0, draggedExercise)
+      
+      // Update exercise_order for all affected exercises
+      const exercisesToUpdate = updatedExercises.map((exercise, index) => ({
+        ...exercise,
+        exercise_order: index + 1
+      }))
+      
+      // Update local state immediately for responsive UI
+      setWorkout(prev => ({
+        ...prev,
+        exercises: exercisesToUpdate
+      }))
+      
+      // Update all exercises in the database with new order
+      const updatePromises = exercisesToUpdate.map((exercise) =>
+        updateExercise(exercise.id, { exercise_order: exercise.exercise_order })
+      )
+      
+      await Promise.all(updatePromises)
+      
+      console.log('✅ Exercise order updated successfully')
+      
+    } catch (error) {
+      console.error('Error updating exercise order:', error)
+      // Refresh to restore original state if update failed
+      await refreshWorkout()
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const formatDate = (date: string | Date) => {
     return new Date(date).toLocaleDateString('en-US', { 
       weekday: 'long',
@@ -561,35 +614,70 @@ export function DayView({ workout: initialWorkout, onBack, onUpdate }: DayViewPr
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {workout.exercises && workout.exercises.length > 0 ? (
-              workout.exercises
-                .sort((a: any, b: any) => a.exercise_order - b.exercise_order)
-                .map((exercise: any) => (
-                  <ExerciseCard
-                    key={exercise.id}
-                    exercise={exercise}
-                    onUpdateExercise={refreshWorkout}
-                    onDeleteExercise={handleDeleteExercise}
-                  />
-                ))
-            ) : (
-              <div className="py-8 text-center">
-                <Plus className="h-12 w-12 mx-auto mb-4 text-gray-400 opacity-50" />
-                <h3 className="font-medium mb-2">No exercises yet</h3>
-                <p className="text-sm text-gray-500 mb-4">
-                  Add exercises to start your workout
-                </p>
-                <Button 
-                  onClick={() => setShowAddExercise(true)}
-                  variant="outline"
+          <DragDropContext onDragEnd={handleDragEnd}>
+            <Droppable droppableId="exercises">
+              {(provided, snapshot) => (
+                <div
+                  {...provided.droppableProps}
+                  ref={provided.innerRef}
+                  className="space-y-4"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add First Exercise
-                </Button>
-              </div>
-            )}
-          </div>
+                  {workout.exercises && workout.exercises.length > 0 ? (
+                    workout.exercises
+                      .sort((a: any, b: any) => a.exercise_order - b.exercise_order)
+                      .map((exercise: any, index: number) => (
+                        <Draggable
+                          key={exercise.id}
+                          draggableId={`exercise-${exercise.id}`}
+                          index={index}
+                        >
+                                                     {(provided, snapshot) => (
+                             <div
+                               ref={provided.innerRef}
+                               {...provided.draggableProps}
+                               className={`bg-white rounded-lg shadow-md ${snapshot.isDragging ? 'bg-gray-100 shadow-lg scale-105' : ''}`}
+                             >
+                               <div className="flex items-center gap-2 p-2 bg-gray-50 border-b border-gray-200">
+                                 <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing p-1">
+                                   <GripVertical className="h-4 w-4 text-gray-400" />
+                                 </div>
+                                 <span className="text-sm font-medium text-gray-600">
+                                   Exercise {exercise.exercise_order}
+                                 </span>
+                               </div>
+                               <div className="p-2">
+                                 <ExerciseCard
+                                   key={exercise.id}
+                                   exercise={exercise}
+                                   onUpdateExercise={refreshWorkout}
+                                   onDeleteExercise={handleDeleteExercise}
+                                 />
+                               </div>
+                             </div>
+                           )}
+                        </Draggable>
+                      ))
+                  ) : (
+                    <div className="py-8 text-center">
+                      <Plus className="h-12 w-12 mx-auto mb-4 text-gray-400 opacity-50" />
+                      <h3 className="font-medium mb-2">No exercises yet</h3>
+                      <p className="text-sm text-gray-500 mb-4">
+                        Add exercises to start your workout
+                      </p>
+                      <Button 
+                        onClick={() => setShowAddExercise(true)}
+                        variant="outline"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add First Exercise
+                      </Button>
+                    </div>
+                  )}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
         </CardContent>
       </Card>
 

@@ -1,11 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Badge } from './ui/badge'
-import { ArrowLeft, Plus, Trash2, Info } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Info, GripVertical } from 'lucide-react'
 import { createMesocycle, createWeek, createWorkout, createExercise, createSet } from '@/lib/supabase/database'
 import { useSupabaseAuth } from '@/lib/hooks/useSupabaseAuth'
 import { supabase } from '@/lib/supabase/supabase'
@@ -516,6 +517,9 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
   // Selected exercises for each workout
   const [workoutPlans, setWorkoutPlans] = useState<any>({})
   const [selectedTemplate, setSelectedTemplate] = useState<string>('')
+  
+  // Exercise order state for drag and drop
+  const [exerciseOrder, setExerciseOrder] = useState<Record<string, string[]>>({})
 
   const handleSplitChange = (split: string) => {
     setSelectedSplit(split)
@@ -539,6 +543,12 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
           weight: 0
         }
       }
+    }))
+    
+    // Add to exercise order
+    setExerciseOrder((prev: any) => ({
+      ...prev,
+      [workoutType]: [...(prev[workoutType] || []), exercise]
     }))
   }
 
@@ -622,6 +632,62 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
       }
       return updated
     })
+    
+    // Also remove from exercise order
+    setExerciseOrder((prev: any) => {
+      const updated = { ...prev }
+      if (updated[workoutType]) {
+        updated[workoutType] = updated[workoutType].filter((ex: string) => ex !== exercise)
+      }
+      return updated
+    })
+  }
+
+  // Drag and drop handlers
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return
+
+    const { source, destination, draggableId } = result
+    const workoutType = source.droppableId
+    const sourceIndex = source.index
+    const destinationIndex = destination.index
+
+    // Update exercise order
+    setExerciseOrder((prev: any) => {
+      const currentOrder = [...(prev[workoutType] || [])]
+      const [removed] = currentOrder.splice(sourceIndex, 1)
+      currentOrder.splice(destinationIndex, 0, removed)
+      
+      return {
+        ...prev,
+        [workoutType]: currentOrder
+      }
+    })
+  }
+
+  // Get ordered exercises for a workout type
+  const getOrderedExercises = (workoutType: string, muscleGroup: string) => {
+    const exercises = workoutPlans[workoutType] || {}
+    const muscleGroupExercises = Object.entries(exercises)
+      .filter(([_, data]) => (data as any).muscleGroup === muscleGroup)
+      .map(([exercise, _]) => exercise)
+    
+    // Use stored order if available, otherwise use current order
+    const storedOrder = exerciseOrder[workoutType] || []
+    const orderedExercises = [...muscleGroupExercises]
+    
+    // Sort based on stored order
+    if (storedOrder.length > 0) {
+      orderedExercises.sort((a, b) => {
+        const aIndex = storedOrder.indexOf(a)
+        const bIndex = storedOrder.indexOf(b)
+        if (aIndex === -1) return 1
+        if (bIndex === -1) return 1
+        return aIndex - bIndex
+      })
+    }
+    
+    return orderedExercises
   }
 
   const calculateSetsForWeek = (muscleGroup: string, week: number, totalExercisesForMuscle: number = 1) => {
@@ -794,17 +860,31 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
           throw new Error(`Failed to create workout: ${workoutError?.message}`)
         }
 
-        // Create exercises for this workout
+        // Create exercises for this workout in the correct order
         const exercisesForWorkout = workoutPlans[workoutType] || {}
+        
+        // Get ordered exercises for this workout type
+        const muscleGroups = new Set()
+        Object.values(exercisesForWorkout).forEach((data: any) => {
+          muscleGroups.add(data.muscleGroup)
+        })
+        
         let exerciseOrder = 1
-
         setLoadingMessage(`Adding exercises and sets for Day ${day}...`)
-        for (const [exerciseName, exerciseData] of Object.entries(exercisesForWorkout)) {
-          const { data: exercise, error: exerciseError } = await createExercise({
-            workout_id: workout.id,
-            name: exerciseName,
-            exercise_order: exerciseOrder++
-          })
+        
+        // Process exercises by muscle group in order
+        for (const muscleGroup of Array.from(muscleGroups)) {
+          const orderedExercises = getOrderedExercises(workoutType, muscleGroup as string)
+          
+          for (const exerciseName of orderedExercises) {
+            const exerciseData = exercisesForWorkout[exerciseName]
+            if (!exerciseData) continue
+            
+            const { data: exercise, error: exerciseError } = await createExercise({
+              workout_id: workout.id,
+              name: exerciseName,
+              exercise_order: exerciseOrder++
+            })
 
           if (exerciseError || !exercise) {
             throw new Error(`Failed to create exercise: ${exerciseError?.message}`)
@@ -844,6 +924,7 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
           }
         }
       }
+    }
 
       const totalTime = Date.now() - startTime
       console.log('✅ Week 1 created successfully in', totalTime, 'ms')
@@ -1119,7 +1200,8 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
     }
 
     return (
-      <div className="space-y-6">
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="space-y-6">
         <div className="flex items-center gap-2 mb-4">
           <Button variant="ghost" size="sm" onClick={() => setStep(1)}>
             <ArrowLeft className="h-4 w-4" />
@@ -1177,27 +1259,54 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
                     </div>
 
                     {/* Selected exercises for this muscle group */}
-                    <div className="space-y-2">
-                      {Object.entries(workoutPlans[workoutType] || {})
-                        .filter(([_, data]) => (data as any).muscleGroup === muscleGroup)
-                        .map(([exercise, data]) => (
-                          <div key={exercise} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                            <span className="text-sm">{exercise}</span>
-                            <div className="flex items-center gap-2">
-                              <Badge variant="secondary" className="text-xs">
-                                {calculateSetsForWeek(muscleGroup, 1, calculateTotalExercisesForMuscleGroup(workoutPlans, muscleGroup))} sets
-                              </Badge>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeExerciseFromWorkout(workoutType, exercise)}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
+                    <Droppable droppableId={`${workoutType}-${muscleGroup}`}>
+                      {(provided) => (
+                        <div 
+                          {...provided.droppableProps}
+                          ref={provided.innerRef}
+                          className="space-y-2"
+                        >
+                          {getOrderedExercises(workoutType, muscleGroup).map((exercise, index) => {
+                            const exerciseData = workoutPlans[workoutType]?.[exercise]
+                            if (!exerciseData) return null
+                            
+                            return (
+                              <Draggable key={exercise} draggableId={exercise} index={index}>
+                                {(provided, snapshot) => (
+                                  <div
+                                    ref={provided.innerRef}
+                                    {...provided.draggableProps}
+                                    className={`flex items-center justify-between bg-gray-50 p-2 rounded transition-all ${
+                                      snapshot.isDragging ? 'shadow-lg scale-105' : ''
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <div {...provided.dragHandleProps} className="cursor-grab active:cursor-grabbing">
+                                        <GripVertical className="h-4 w-4 text-gray-400" />
+                                      </div>
+                                      <span className="text-sm">{exercise}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Badge variant="secondary" className="text-xs">
+                                        {calculateSetsForWeek(muscleGroup, 1, calculateTotalExercisesForMuscleGroup(workoutPlans, muscleGroup))} sets
+                                      </Badge>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => removeExerciseFromWorkout(workoutType, exercise)}
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                )}
+                              </Draggable>
+                            )
+                          })}
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Droppable>
                   </div>
                 ))}
               </CardContent>
@@ -1217,7 +1326,8 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
             {loading ? 'Creating...' : 'Create Mesocycle'}
           </Button>
         </div>
-      </div>
+        </div>
+      </DragDropContext>
     )
   }
 
@@ -1255,22 +1365,39 @@ export function CreateMesocycle({ onBack, onSuccess }: CreateMesocycleProps) {
               </div>
             </div>
 
-            {Object.entries(workoutPlans).map(([workoutType, exercises]) => (
-              <div key={workoutType}>
-                <h4 className="font-medium mb-2">{workoutType}</h4>
-                <div className="space-y-1 text-sm text-gray-600">
-                  {Object.entries(exercises as any).map(([exercise, data]) => {
-                    const totalExercisesForMuscle = calculateTotalExercisesForMuscleGroup(workoutPlans, (data as any).muscleGroup)
-                    return (
-                      <div key={exercise} className="flex justify-between">
-                        <span>{exercise}</span>
-                        <span>{calculateSetsForWeek((data as any).muscleGroup, 1, totalExercisesForMuscle)}-{calculateSetsForWeek((data as any).muscleGroup, 4, totalExercisesForMuscle)} sets</span>
-                      </div>
-                    )
-                  })}
+            {Object.entries(workoutPlans).map(([workoutType, exercises]) => {
+              // Get all muscle groups for this workout type
+              const muscleGroups = new Set()
+              Object.values(exercises as any).forEach((data: any) => {
+                muscleGroups.add(data.muscleGroup)
+              })
+              
+              return (
+                <div key={workoutType}>
+                  <h4 className="font-medium mb-2">{workoutType}</h4>
+                  <div className="space-y-1 text-sm text-gray-600">
+                    {Array.from(muscleGroups).map((muscleGroup: string) => {
+                      const orderedExercises = getOrderedExercises(workoutType, muscleGroup as string)
+                      return orderedExercises.map((exercise, index) => {
+                        const exerciseData = exercises[exercise]
+                        if (!exerciseData) return null
+                        
+                        const totalExercisesForMuscle = calculateTotalExercisesForMuscleGroup(workoutPlans, exerciseData.muscleGroup)
+                        return (
+                          <div key={exercise} className="flex justify-between">
+                            <span className="flex items-center gap-2">
+                              <span className="text-gray-400 text-xs">#{index + 1}</span>
+                              <span>{exercise}</span>
+                            </span>
+                            <span>{calculateSetsForWeek(exerciseData.muscleGroup, 1, totalExercisesForMuscle)}-{calculateSetsForWeek(exerciseData.muscleGroup, 4, totalExercisesForMuscle)} sets</span>
+                          </div>
+                        )
+                      })
+                    })}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </CardContent>
       </Card>
